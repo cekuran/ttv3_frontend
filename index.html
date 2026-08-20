@@ -104,6 +104,48 @@
   }
   .brand-name { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
   .brand-sub  { font-size: 11px; color: var(--outline); font-weight: 500; }
+  .brand-actions { margin-left: auto; display: flex; gap: 4px; }
+  .icon-btn {
+    width: 32px; height: 32px; padding: 0; border-radius: 8px;
+    background: transparent; color: var(--on-surface-variant);
+    border: 1px solid transparent; cursor: pointer; font-size: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: var(--surface-low); color: var(--primary); }
+
+  /* ==== Login screen ==== */
+  .login-screen {
+    position: fixed; inset: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--surface-low), var(--surface-container));
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .login-card {
+    background: #fff; padding: 32px 28px; border-radius: var(--r-xl);
+    box-shadow: var(--shadow-2); width: 100%; max-width: 380px;
+    border: 1px solid var(--outline-variant);
+  }
+  .login-card h1 { margin: 0 0 4px; font-size: 22px; }
+  .login-card .sub { color: var(--on-surface-variant); font-size: 13px; margin-bottom: 20px; }
+  .login-card label { display: block; font-size: 12px; color: var(--on-surface-variant); margin: 12px 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .login-card input { width: 100%; padding: 10px 14px; font-size: 14px; }
+  .login-card button[type="submit"] { width: 100%; margin-top: 20px; padding: 12px; font-size: 14px; }
+  .login-card .err { color: var(--error); font-size: 13px; margin-top: 12px; min-height: 1.2em; }
+  .login-card .hint { font-size: 12px; color: var(--outline); margin-top: 16px; text-align: center; }
+
+  /* ==== Admin ==== */
+  .admin-grid { display: grid; gap: 16px; }
+  .admin-section { background: #fff; padding: 16px 18px; border-radius: var(--r-lg); box-shadow: var(--shadow-1); border: 1px solid var(--outline-variant); }
+  .admin-section h3 { margin: 0 0 12px; font-size: 12px; color: var(--on-surface-variant); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .admin-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--outline-variant); }
+  .admin-row:last-child { border-bottom: 0; }
+  .admin-row .grow { flex: 1; min-width: 120px; }
+  .admin-row .meta { font-size: 12px; color: var(--outline); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pill.admin { background: rgba(16,43,138,0.12); color: var(--primary); }
+  .pill.user  { background: var(--surface-container); color: var(--on-surface-variant); }
+  .pill.inactive { background: rgba(186,26,26,0.10); color: var(--error); }
+  .pill.default { background: rgba(0,108,77,0.10); color: var(--secondary); }
+  .nav-item.hidden { display: none; }
   .nav-item {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 12px; border-radius: var(--r-md);
@@ -291,13 +333,31 @@
 </head>
 <body>
 
-<div class="app">
+<!-- ==== Login ==== -->
+<div class="login-screen" id="login-screen">
+  <form class="login-card" id="login-form" autocomplete="on">
+    <h1>TaskTime</h1>
+    <div class="sub">Inicia sesión para continuar</div>
+    <label for="login-user">Usuario</label>
+    <input type="text" id="login-user" autocomplete="username" required>
+    <label for="login-pass">Contraseña</label>
+    <input type="password" id="login-pass" autocomplete="current-password" required>
+    <button type="submit">Entrar</button>
+    <div class="err" id="login-err"></div>
+    <div class="hint" id="login-hint"></div>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-logo">T</div>
       <div>
         <div class="brand-name">TaskTime</div>
-        <div class="brand-sub">Focus & time tracking</div>
+        <div class="brand-sub" id="brand-user">—</div>
+      </div>
+      <div class="brand-actions">
+        <button class="icon-btn" id="logout-btn" title="Cerrar sesión"><span class="material-icons">logout</span></button>
       </div>
     </div>
     <button class="nav-item active" data-view="dashboard"><span class="material-icons">dashboard</span>Dashboard</button>
@@ -305,6 +365,7 @@
     <button class="nav-item" data-view="habits"><span class="material-icons">cached</span>Habits</button>
     <button class="nav-item" data-view="stats"><span class="material-icons">bar_chart</span>Stats</button>
     <button class="nav-item" data-view="reports"><span class="material-icons">description</span>Reports</button>
+    <button class="nav-item hidden" data-view="admin" id="nav-admin"><span class="material-icons">admin_panel_settings</span>Admin</button>
   </aside>
 
   <main>
@@ -452,6 +513,62 @@
 
       <div id="report-preview" style="margin-top: 20px;"></div>
     </section>
+
+    <!-- ====== Admin ====== -->
+    <section id="view-admin" class="view">
+      <div class="view-header">
+        <h1>Admin</h1>
+        <p>Gestiona usuarios, contraseñas y hojas de cálculo vinculadas.</p>
+      </div>
+
+      <div class="admin-grid">
+        <div class="admin-section">
+          <h3>Mi cuenta</h3>
+          <div class="admin-row">
+            <div class="grow">
+              <div><b id="me-username">—</b> <span class="pill user" id="me-rol">user</span></div>
+              <div class="meta">Cambia tu contraseña desde aquí.</div>
+            </div>
+          </div>
+          <form id="form-my-password" style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr auto; align-items: end;">
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Actual</label><input type="password" id="mypw-current" autocomplete="current-password" required></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nueva (mín. 8)</label><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"></div>
+            <button type="submit">Cambiar</button>
+          </form>
+        </div>
+
+        <div class="admin-section">
+          <h3>Usuarios</h3>
+          <div id="users-list"></div>
+          <form id="form-new-user" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1fr 100px auto; align-items: end;">
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.-]{3,40}"></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><input type="password" id="nu-pass" required minlength="8"></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Rol</label><select id="nu-rol"><option value="basico">basico</option><option value="admin">admin</option></select></div>
+            <button type="submit">Crear</button>
+          </form>
+        </div>
+
+        <div class="admin-section">
+          <h3>Hojas de cálculo (spreadsheets)</h3>
+          <div id="sheets-list"></div>
+          <form id="form-new-sheet" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1.5fr 1fr auto; align-items: end;">
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Spreadsheet ID</label><input type="text" id="ns-id" required></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nombre</label><input type="text" id="ns-name" required></div>
+            <button type="submit">Añadir</button>
+          </form>
+        </div>
+
+        <div class="admin-section">
+          <h3>Vinculaciones usuario ↔ hoja</h3>
+          <div id="links-list"></div>
+          <form id="form-new-link" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1.5fr auto; align-items: end;">
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario</label><select id="nl-user" required></select></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Hoja</label><select id="nl-sheet" required></select></div>
+            <button type="submit">Vincular</button>
+          </form>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -461,6 +578,7 @@
   <button class="nav-item" data-view="habits"><span class="material-icons">cached</span>Habits</button>
   <button class="nav-item" data-view="stats"><span class="material-icons">bar_chart</span>Stats</button>
   <button class="nav-item" data-view="reports"><span class="material-icons">description</span>Reports</button>
+  <button class="nav-item hidden" data-view="admin" id="nav-admin-mobile"><span class="material-icons">admin_panel_settings</span>Admin</button>
 </nav>
 
 <script>
@@ -524,8 +642,20 @@ function labelColor(id)  { const l = labelById(id); return l ? l.color : '#9aa0a
 // Default targets the local Cloudflare Worker (npm run dev in proxy/).
 const API_URL = 'https://tasktime-cors-proxy.marquezhh.workers.dev';
 
+// ==== Auth ====
+const AUTH_TOKEN_KEY = 'tasktime_auth_token';
+const SESSION_KEY = 'tasktime_session';
+
+function authToken() { return localStorage.getItem(AUTH_TOKEN_KEY) || ''; }
+function setAuthToken(t) { if (t) localStorage.setItem(AUTH_TOKEN_KEY, t); else localStorage.removeItem(AUTH_TOKEN_KEY); }
+function readSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; }
+}
+function writeSession(s) { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }
+function clearSession() { setAuthToken(''); writeSession(null); }
+
 async function rawCall(fn, ...args) {
-  const body = JSON.stringify({ action: fn, args });
+  const body = JSON.stringify({ action: fn, args, token: authToken() });
   let response;
   try {
     response = await fetch(API_URL, {
@@ -543,7 +673,11 @@ async function rawCall(fn, ...args) {
   catch (e) {
     throw new Error('La API devolvió HTML en lugar de JSON (' + (response.url || API_URL) + '). Revisa que API_URL apunte al Web App correcto (/exec) y que el deploy esté publicado como Anyone.');
   }
-  if (payload && payload.ok === false) throw new Error(payload.error || 'Error desconocido');
+  if (payload && payload.ok === false) {
+    const err = new Error(payload.error || 'Error desconocido');
+    err.serverError = true;
+    throw err;
+  }
   return payload ? payload.data : null;
 }
 
@@ -593,18 +727,104 @@ const PALETTE_C = ['#4285F4','#EA4335','#FBBC04','#34A853','#A142F4','#24C1E0','
 
 // ==== Bootstrap ====
 async function init() {
+  bindLogin();
+  // ¿Hay token guardado? Validar con el servidor.
+  if (authToken()) {
+    try {
+      const status = await call('authStatus', authToken());
+      if (status && status.authenticated) {
+        writeSession({ user: status.user, rol: status.rol });
+        await startApp();
+        return;
+      }
+    } catch (e) { /* token inválido: caer a login */ }
+    clearSession();
+  }
+  showLogin();
+}
+
+function showLogin() {
+  $('#app').hidden = true;
+  $('#login-screen').style.display = 'flex';
+  $('#login-err').textContent = '';
+  $('#login-user').focus();
+}
+
+async function startApp() {
+  $('#login-screen').style.display = 'none';
+  $('#app').hidden = false;
+  const session = readSession() || {};
+  $('#brand-user').textContent = session.user ? `${session.user} · ${session.rol || ''}` : '—';
+  // Mostrar el item Admin sólo a administradores.
+  const isAdmin = (session.rol || '') === 'admin';
+  $('#nav-admin').classList.toggle('hidden', !isAdmin);
+  $('#nav-admin-mobile').classList.toggle('hidden', !isAdmin);
+
   try {
-    Object.assign(state, await call('getInitialData'));
+    const boot = await call('bootstrap');
+    Object.assign(state, {
+      tasks: boot.tasks || [],
+      labels: boot.labels || [],
+      entries: boot.entries || [],
+      activeTimer: boot.activeTimer || null
+    });
     bindNav();
     bindGlobal();
+    bindLogout();
+    bindAdmin();
     refreshAll();
     if (state.activeTimer) startTicker();
+    if (boot.sin_hojas) {
+      toast('Tu cuenta no tiene hojas de cálculo asignadas. Pide al admin que vincule una.', 'warn');
+    }
   } catch (e) {
-    document.body.innerHTML = `<pre style="color:#b00020; padding:20px; white-space:pre-wrap;">${e.message}\n\nOpen the script as a Web App URL. The script must be bound to a Google Sheet; Tasks/Labels/TimeEntries sheets are created on first load.</pre>`;
+    if (/No autenticado/.test(e.message)) { clearSession(); showLogin(); return; }
+    showFatal(e);
   }
 }
 
-const VIEWS = ['dashboard','tasks','habits','stats','reports'];
+function bindLogin() {
+  $('#login-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const user = $('#login-user').value.trim();
+    const pass = $('#login-pass').value;
+    $('#login-err').textContent = '';
+    try {
+      const res = await call('loginUsuario', user, pass);
+      setAuthToken(res.token);
+      writeSession({ user: res.user, rol: res.rol });
+      await startApp();
+    } catch (e) {
+      $('#login-err').textContent = e.message;
+      $('#login-pass').select();
+    }
+  });
+}
+
+function bindLogout() {
+  const handler = async () => {
+    try { await call('logoutUsuario', authToken()); } catch (e) { /* best-effort */ }
+    clearSession();
+    state.tasks = []; state.labels = []; state.entries = []; state.activeTimer = null;
+    showLogin();
+  };
+  $('#logout-btn').addEventListener('click', handler);
+}
+
+function showFatal(e) {
+  document.body.innerHTML = `<pre style="color:#b00020; padding:20px; white-space:pre-wrap;">${e.message}</pre>`;
+}
+
+function toast(msg, kind) {
+  // ponytail: native CSS toast — no lib, no portal, lives 3s then dies
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = `position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:${kind==='warn'?'#fff3cd':'#d4edda'}; color:#222; padding:10px 16px; border-radius:8px; box-shadow:var(--shadow-2); z-index:200; font-size:13px; max-width:90%;`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+const VIEWS = ['dashboard','tasks','habits','stats','reports','admin'];
 
 function bindNav() {
   $$('.nav-item').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
@@ -616,8 +836,13 @@ function bindNav() {
     const dx = e.changedTouches[0].clientX - tx; tx = null;
     if (Math.abs(dx) < 50) return;
     const cur = VIEWS.indexOf($('.nav-item.active')?.dataset.view);
-    const next = dx < 0 ? Math.min(cur+1, VIEWS.length-1) : Math.max(cur-1, 0);
-    if (next >= 0 && next !== cur) showView(VIEWS[next]);
+    const visibleViews = VIEWS.filter(v => {
+      if (v !== 'admin') return true;
+      return (readSession() || {}).rol === 'admin';
+    });
+    const idxInVisible = visibleViews.indexOf($('.nav-item.active')?.dataset.view);
+    const next = dx < 0 ? Math.min(idxInVisible+1, visibleViews.length-1) : Math.max(idxInVisible-1, 0);
+    if (next >= 0 && next !== idxInVisible) showView(visibleViews[next]);
   }, { passive: true });
 }
 function showView(name) {
@@ -628,6 +853,7 @@ function showView(name) {
   if (name === 'tasks')     renderTasksView();
   if (name === 'stats')     renderStats();
   if (name === 'reports')   renderReports();
+  if (name === 'admin')     renderAdmin();
 }
 
 function bindGlobal() {
@@ -1287,6 +1513,186 @@ function downloadExport() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
+}
+
+// ==== Admin ====
+let adminUsers = [], adminSheets = [], adminLinks = [];
+
+async function renderAdmin() {
+  const session = readSession() || {};
+  $('#me-username').textContent = session.user || '—';
+  $('#me-rol').textContent = session.rol || 'user';
+  try {
+    [adminUsers, adminSheets, adminLinks] = await Promise.all([
+      call('listarUsuariosAdmin'),
+      call('listarSpreadsheetsAdmin'),
+      call('listarVinculacionesAdmin')
+    ]);
+  } catch (e) {
+    toast(e.message, 'warn');
+    return;
+  }
+  paintUsers(); paintSheets(); paintLinks(); refreshLinkFormSelects();
+}
+
+function pill(text, klass) { return `<span class="pill ${klass || ''}">${escapeHtml(text)}</span>`; }
+
+function paintUsers() {
+  const wrap = $('#users-list');
+  wrap.innerHTML = adminUsers.map(u => `
+    <div class="admin-row" data-username="${escapeHtml(u.username)}">
+      <div class="grow">
+        <b>${escapeHtml(u.username)}</b>
+        ${pill(u.rol, u.rol === 'admin' ? 'admin' : 'user')}
+        ${u.activo ? '' : pill('inactivo', 'inactive')}
+      </div>
+      <select class="rol-sel">
+        <option value="basico" ${u.rol==='basico'?'selected':''}>basico</option>
+        <option value="admin"  ${u.rol==='admin' ?'selected':''}>admin</option>
+      </select>
+      <button class="secondary rol-save">Guardar rol</button>
+      <button class="secondary pw-reset">Cambiar contraseña</button>
+      <button class="del user-del">Eliminar</button>
+    </div>
+  `).join('') || '<div class="empty">No hay usuarios.</div>';
+  $$('#users-list .rol-save').forEach(b => b.onclick = () => onChangeRol(b.closest('.admin-row')));
+  $$('#users-list .pw-reset').forEach(b => b.onclick = () => onResetUserPass(b.closest('.admin-row')));
+  $$('#users-list .user-del').forEach(b => b.onclick = () => onDeleteUser(b.closest('.admin-row')));
+}
+
+function paintSheets() {
+  const wrap = $('#sheets-list');
+  wrap.innerHTML = adminSheets.map(s => `
+    <div class="admin-row" data-sid="${escapeHtml(s.spreadsheet_id)}">
+      <div class="grow">
+        <b>${escapeHtml(s.nombre)}</b>
+        <div class="meta"><code>${escapeHtml(s.spreadsheet_id)}</code> · ${s.usuarios.length} usuario${s.usuarios.length===1?'':'s'}</div>
+      </div>
+      <button class="secondary sheet-rename">Renombrar</button>
+      <button class="del sheet-del">Eliminar</button>
+    </div>
+  `).join('') || '<div class="empty">No hay hojas registradas.</div>';
+  $$('#sheets-list .sheet-rename').forEach(b => b.onclick = () => onRenameSheet(b.closest('.admin-row')));
+  $$('#sheets-list .sheet-del').forEach(b => b.onclick = () => onDeleteSheet(b.closest('.admin-row')));
+}
+
+function paintLinks() {
+  const wrap = $('#links-list');
+  wrap.innerHTML = adminLinks.map(l => `
+    <div class="admin-row" data-u="${escapeHtml(l.username)}">
+      <div class="grow">
+        <b>${escapeHtml(l.username)}</b>
+        <div class="meta">${l.hojas.length} hoja${l.hojas.length===1?'':'s'}</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        ${l.hojas.map(h => `
+          <span class="pill ${h.por_defecto ? 'default' : 'user'}" title="${escapeHtml(h.spreadsheet_id)}">
+            ${escapeHtml(h.nombre)}
+            ${h.por_defecto ? '★' : ''}
+            <a href="#" data-act="default" data-sid="${escapeHtml(h.spreadsheet_id)}" style="color:inherit; margin-left:6px;">★</a>
+            <a href="#" data-act="unlink" data-sid="${escapeHtml(h.spreadsheet_id)}" style="color:var(--error); margin-left:4px;">×</a>
+          </span>
+        `).join('') || '<span class="meta">(sin hojas)</span>'}
+      </div>
+    </div>
+  `).join('') || '<div class="empty">No hay usuarios.</div>';
+  $$('#links-list [data-act]').forEach(a => a.onclick = (ev) => {
+    ev.preventDefault();
+    const row = a.closest('.admin-row');
+    const username = row.dataset.u;
+    const sid = a.dataset.sid;
+    if (a.dataset.act === 'default') onSetDefault(username, sid);
+    if (a.dataset.act === 'unlink') onUnlink(username, sid);
+  });
+}
+
+function refreshLinkFormSelects() {
+  const u = $('#nl-user'); const s = $('#nl-sheet');
+  u.innerHTML = adminUsers.map(x => `<option value="${escapeHtml(x.username)}">${escapeHtml(x.username)}</option>`).join('');
+  s.innerHTML = adminSheets.map(x => `<option value="${escapeHtml(x.spreadsheet_id)}">${escapeHtml(x.nombre)}</option>`).join('');
+}
+
+async function onChangeRol(row) {
+  const username = row.dataset.username;
+  const rol = row.querySelector('.rol-sel').value;
+  try { await call('cambiarRolUsuarioAdmin', username, rol); toast('Rol actualizado'); renderAdmin(); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+async function onResetUserPass(row) {
+  const username = row.dataset.username;
+  const np = prompt(`Nueva contraseña para "${username}" (mín. 8 caracteres):`);
+  if (!np) return;
+  if (np.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'warn'); return; }
+  try { await call('resetearContrasenaAdmin', username, np); toast('Contraseña actualizada'); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+async function onDeleteUser(row) {
+  const username = row.dataset.username;
+  if (!confirm(`¿Eliminar al usuario "${username}"? Sus vinculaciones también se borrarán.`)) return;
+  try { await call('eliminarUsuarioAdmin', username); toast('Usuario eliminado'); renderAdmin(); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+async function onRenameSheet(row) {
+  const sid = row.dataset.sid;
+  const current = adminSheets.find(x => x.spreadsheet_id === sid);
+  const nn = prompt('Nuevo nombre:', current ? current.nombre : '');
+  if (!nn) return;
+  try { await call('renombrarSpreadsheetAdmin', sid, nn); toast('Renombrado'); renderAdmin(); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+async function onDeleteSheet(row) {
+  const sid = row.dataset.sid;
+  if (!confirm('¿Eliminar este spreadsheet del directorio? Las vinculaciones a usuarios se borrarán.')) return;
+  try { await call('bajaSpreadsheetAdmin', sid); toast('Spreadsheet eliminado'); renderAdmin(); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+async function onSetDefault(username, sid) {
+  try { await call('setHojaPorDefectoAdmin', username, sid); toast('Hoja por defecto actualizada'); renderAdmin(); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+async function onUnlink(username, sid) {
+  if (!confirm(`¿Desvincular la hoja del usuario "${username}"?`)) return;
+  try { await call('desvincularHojaUsuarioAdmin', username, sid); toast('Desvinculado'); renderAdmin(); }
+  catch (e) { toast(e.message, 'warn'); }
+}
+
+function bindAdmin() {
+  $('#form-my-password').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const cur = $('#mypw-current').value;
+    const np  = $('#mypw-new').value;
+    try {
+      await call('cambiarMiContrasena', cur, np);
+      toast('Contraseña cambiada');
+      $('#form-my-password').reset();
+    } catch (e) { toast(e.message, 'warn'); }
+  });
+  $('#form-new-user').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    try {
+      await call('crearUsuarioAdmin', $('#nu-user').value.trim(), $('#nu-pass').value, $('#nu-rol').value);
+      toast('Usuario creado');
+      $('#form-new-user').reset();
+      renderAdmin();
+    } catch (e) { toast(e.message, 'warn'); }
+  });
+  $('#form-new-sheet').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    try {
+      await call('altaSpreadsheetAdmin', $('#ns-id').value.trim(), $('#ns-name').value.trim(), '');
+      toast('Spreadsheet añadido');
+      $('#form-new-sheet').reset();
+      renderAdmin();
+    } catch (e) { toast(e.message, 'warn'); }
+  });
+  $('#form-new-link').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    try {
+      await call('vincularHojaUsuarioAdmin', $('#nl-user').value, $('#nl-sheet').value, false);
+      toast('Vinculación creada');
+      renderAdmin();
+    } catch (e) { toast(e.message, 'warn'); }
+  });
 }
 
 init();

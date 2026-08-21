@@ -6,7 +6,7 @@
 <title>TaskTime</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Hanken+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -96,7 +96,7 @@
     width: 240px; flex-shrink: 0; background: #fff;
     border-right: 1px solid var(--outline-variant);
     padding: 24px 16px; display: flex; flex-direction: column; gap: 4px;
-    position: fixed; top: 0; bottom: 0; left: 0; z-index: 5;
+    position: fixed; top: 64px; bottom: 0; left: 0; z-index: 5;
   }
   .brand {
     display: flex; align-items: center; gap: 10px;
@@ -143,19 +143,340 @@
   .login-card .err { color: var(--error); font-size: 13px; margin-top: 12px; min-height: 1.2em; }
   .login-card .hint { font-size: 12px; color: var(--outline); margin-top: 16px; text-align: center; }
 
-  /* ==== Admin ==== */
-  .admin-grid { display: grid; gap: 16px; }
-  .admin-section { background: #fff; padding: 16px 18px; border-radius: var(--r-lg); box-shadow: var(--shadow-1); border: 1px solid var(--outline-variant); }
-  .admin-section h3 { margin: 0 0 12px; font-size: 12px; color: var(--on-surface-variant); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-  .admin-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--outline-variant); }
-  .admin-row:last-child { border-bottom: 0; }
-  .admin-row .grow { flex: 1; min-width: 120px; }
-  .admin-row .meta { font-size: 12px; color: var(--outline); }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-  .pill.admin { background: rgba(16,43,138,0.12); color: var(--primary); }
-  .pill.user  { background: var(--surface-container); color: var(--on-surface-variant); }
-  .pill.inactive { background: rgba(186,26,26,0.10); color: var(--error); }
-  .pill.default { background: rgba(0,108,77,0.10); color: var(--secondary); }
+  /* ==== Admin (Stitch-style: tabs + data tables) ==== */
+  .ac-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--outline-variant);
+    margin-bottom: 24px;
+    overflow-x: auto;
+    background: transparent;
+  }
+  .ac-tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 16px;
+    background: none; border: 0;
+    font: 500 14px/1 'Inter', sans-serif;
+    color: var(--on-surface-variant);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s, background .15s;
+    font-family: inherit;
+  }
+  .ac-tab:hover { color: var(--on-surface); background: rgba(16,43,138,0.04); }
+  .ac-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .ac-tab .material-icons { font-size: 18px; line-height: 1; }
+
+  .ac-panel { display: none; }
+  .ac-panel.active { display: block; }
+
+  .ac-header {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .ac-header h2 {
+    font: 700 22px/28px 'Hanken Grotesk', system-ui, sans-serif;
+    margin: 0 0 4px;
+    color: var(--on-surface);
+    letter-spacing: -0.01em;
+  }
+  .ac-header p { color: var(--on-surface-variant); font-size: 14px; margin: 0; }
+
+  .ac-btn-primary {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary); color: var(--on-primary);
+    border: 0; padding: 0 16px; border-radius: var(--r-sm);
+    height: 36px;
+    font: 500 14px/1 'Inter', sans-serif; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(16,43,138,0.20);
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .ac-btn-primary:hover { background: var(--primary-container); }
+  .ac-btn-primary .material-icons { font-size: 18px; line-height: 1; }
+
+  .ac-toolbar {
+    background: #fff;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-md);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex; gap: 12px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .ac-search { flex: 1; min-width: 200px; position: relative; }
+  .ac-search .material-icons {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--on-surface-variant); font-size: 18px; line-height: 1;
+    pointer-events: none;
+  }
+  .ac-search input {
+    width: 100%; padding-left: 36px;
+    background: var(--surface-low); border: 1px solid var(--outline-variant);
+    border-radius: var(--r-sm); height: 36px;
+    font-size: 14px;
+  }
+  .ac-search input:focus { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); outline: none; }
+
+  .ac-card {
+    background: #fff;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .ac-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ac-table thead th {
+    background: var(--surface-low);
+    font: 600 11px/14px 'Inter', sans-serif;
+    color: var(--on-surface-variant);
+    text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 12px 16px; text-align: left;
+    border-bottom: 1px solid var(--outline-variant);
+    height: 40px; vertical-align: middle;
+  }
+  .ac-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--outline-variant);
+    height: 40px; vertical-align: middle;
+  }
+  .ac-table tbody tr:last-child td { border-bottom: 0; }
+  .ac-table tbody tr { transition: background .15s; }
+  .ac-table tbody tr:hover { background: rgba(16,43,138,0.04); }
+
+  .ac-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-container));
+    color: var(--on-primary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 12px;
+    flex-shrink: 0;
+  }
+  .ac-user-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .ac-user-name { font-weight: 500; color: var(--on-surface); }
+  .ac-user-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+
+  .ac-role {
+    display: inline-flex; align-items: center;
+    padding: 2px 10px; border-radius: 9999px;
+    font: 500 11px/16px 'Inter', sans-serif;
+    background: rgba(16,43,138,0.10); color: var(--primary);
+    text-transform: lowercase;
+  }
+  .ac-role.basico { background: var(--surface-container); color: var(--on-surface-variant); }
+  .ac-role.inactive { background: rgba(186,26,26,0.10); color: var(--error); }
+  .ac-role.default { background: rgba(0,108,77,0.10); color: var(--secondary); }
+
+  .ac-actions {
+    display: flex; justify-content: flex-end; gap: 4px;
+    opacity: 0; transition: opacity .15s;
+  }
+  .ac-table tbody tr:hover .ac-actions,
+  .ac-table tbody tr:focus-within .ac-actions { opacity: 1; }
+  .ac-icon-btn {
+    width: 32px; height: 32px; padding: 0;
+    background: transparent; border: 0; border-radius: 6px;
+    color: var(--on-surface-variant);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .ac-icon-btn:hover { background: var(--surface-low); color: var(--primary); }
+  .ac-icon-btn.danger:hover { background: rgba(186,26,26,0.08); color: var(--error); }
+  .ac-icon-btn .material-icons { font-size: 18px; line-height: 1; }
+
+  .ac-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--on-surface-variant);
+    font-size: 14px;
+  }
+
+  .ac-add-form {
+    background: #fff;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-md);
+    padding: 16px;
+    margin-bottom: 16px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    align-items: end;
+  }
+  .ac-add-form[hidden] { display: none; }
+  .ac-add-form label {
+    display: block;
+    font: 500 12px/16px 'Inter', sans-serif;
+    color: var(--on-surface-variant);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+  .ac-add-form input, .ac-add-form select {
+    width: 100%; height: 36px; padding: 0 12px;
+    background: #fff;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-sm);
+    font-size: 14px; color: var(--on-surface);
+  }
+  .ac-add-form input:focus, .ac-add-form select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .ac-add-form .ac-form-actions {
+    grid-column: 1 / -1;
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+  .ac-add-form button[type="submit"] {
+    background: var(--primary); color: var(--on-primary);
+    border: 0; padding: 0 16px; border-radius: var(--r-sm);
+    height: 36px;
+    font: 500 14px/1 'Inter', sans-serif;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ac-add-form button[type="submit"]:hover { background: var(--primary-container); }
+  .ac-btn-secondary {
+    background: #fff; color: var(--on-surface);
+    border: 1px solid var(--outline-variant);
+    padding: 0 16px; border-radius: var(--r-sm);
+    height: 36px;
+    font: 500 14px/1 'Inter', sans-serif;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ac-btn-secondary:hover { background: var(--surface-low); border-color: var(--primary); }
+
+  .ac-pw-wrap { position: relative; }
+  .ac-pw-wrap input { padding-right: 36px; }
+  .ac-pw-toggle {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: 0; padding: 6px;
+    color: var(--on-surface-variant); cursor: pointer;
+    border-radius: 4px;
+  }
+  .ac-pw-toggle:hover { color: var(--primary); }
+
+  .ac-profile {
+    background: #fff;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-md);
+    padding: 24px;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 16px;
+  }
+  .ac-profile .ac-avatar { width: 56px; height: 56px; font-size: 18px; }
+  .ac-profile-info { flex: 1; min-width: 0; }
+  .ac-profile-name {
+    font: 700 18px/24px 'Hanken Grotesk', system-ui, sans-serif;
+    color: var(--on-surface);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .ac-profile-meta { font-size: 13px; color: var(--on-surface-variant); margin-top: 2px; }
+
+  .ac-link-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 12px; border-radius: 9999px;
+    background: var(--surface-low); color: var(--on-surface);
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--outline-variant);
+  }
+  .ac-link-pill.default { background: rgba(0,108,77,0.08); border-color: rgba(0,108,77,0.20); color: var(--secondary); }
+  .ac-link-pill a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; }
+  .ac-link-pill a:hover { color: var(--primary); }
+  .ac-link-pill a.del:hover { color: var(--error); }
+  .ac-link-pill .material-icons { font-size: 14px; line-height: 1; }
+
+  /* === Edit user modal (Stitch-style overlay) === */
+  .ac-modal {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .ac-modal[hidden] { display: none; }
+  .ac-modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .ac-modal-card {
+    position: relative;
+    width: 100%; max-width: 480px;
+    background: #fff;
+    border-radius: var(--r-md);
+    border: 1px solid var(--outline-variant);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .ac-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--outline-variant);
+  }
+  .ac-modal-header h2 {
+    margin: 0;
+    font: 600 18px/24px 'Hanken Grotesk', system-ui, sans-serif;
+    color: var(--on-surface);
+  }
+  .ac-modal-body {
+    padding: 20px 24px;
+    display: flex; flex-direction: column;
+    gap: 16px;
+  }
+  .ac-modal-body > div { display: flex; flex-direction: column; }
+  .ac-modal-body label {
+    font: 500 12px/16px 'Inter', sans-serif;
+    color: var(--on-surface-variant);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+  .ac-modal-body select,
+  .ac-modal-body input {
+    height: 36px; padding: 0 12px;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-sm);
+    font-size: 14px;
+    background: #fff;
+    color: var(--on-surface);
+  }
+  .ac-modal-body select:focus,
+  .ac-modal-body input:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .ac-modal-hint {
+    font-size: 11px; color: var(--outline); margin-top: 4px;
+  }
+  .ac-modal-user {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px;
+    background: var(--surface-low);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--outline-variant);
+    flex-direction: row;
+  }
+  .ac-modal-user .ac-user-name { font-weight: 600; font-size: 15px; }
+  .ac-modal-user .ac-user-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .ac-modal-actions {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--outline-variant);
+    background: var(--surface-low);
+    border-bottom-left-radius: var(--r-md);
+    border-bottom-right-radius: var(--r-md);
+  }
+  .ac-modal-spacer { flex: 1; }
+  .ac-modal-delete {
+    background: transparent; color: var(--error);
+    border: 0; cursor: pointer;
+    font: 500 13px/1 'Inter', sans-serif;
+    padding: 8px 12px; border-radius: var(--r-sm);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  .ac-modal-delete:hover { background: rgba(186, 26, 26, 0.08); }
+  .ac-modal-delete .material-icons { font-size: 16px; line-height: 1; }
   .nav-item.hidden { display: none; }
   .nav-item {
     display: flex; align-items: center; gap: 12px;
@@ -171,7 +492,7 @@
 
   .bottom-nav { display: none; }
 
-  main { margin-left: 240px; flex: 1; padding: 28px 40px; }
+  main { margin-left: 240px; flex: 1; padding: 76px 40px 28px; }
   .view-header { margin-bottom: 24px; }
   .view-header h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
   .view-header p  { color: var(--on-surface-variant); font-size: 14px; margin: 0; }
@@ -255,52 +576,58 @@
   .preview-table tr:last-child td { border-bottom: 0; }
   .preview-table td b { font-family: 'JetBrains Mono', ui-monospace, monospace; }
 
-  /* === Mobile top bar — Stitch-style app-bar with avatar dropdown === */
-  .mobile-top { display: none; }
+  /* === Top bar — Stitch-style app-bar with avatar dropdown (visible on all screens) === */
+  .mobile-top {
+    display: flex; align-items: center; justify-content: flex-end;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 110;
+    padding: 12px 24px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--outline-variant);
+  }
+  .mobile-top-brand { display: none; }  /* desktop: sidebar ya tiene la marca; mobile: se muestra en @media */
+  .avatar-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-container));
+    color: var(--on-primary); border: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; font-family: inherit;
+    box-shadow: var(--shadow-2);
+    transition: transform .15s;
+  }
+  .avatar-btn:hover { transform: scale(1.05); }
+  .avatar-btn:active { transform: scale(0.97); }
+  .user-menu {
+    position: absolute; top: calc(100% + 6px); right: 24px;
+    min-width: 240px; padding: 6px 0;
+    background: #fff; border: 1px solid var(--outline-variant);
+    border-radius: var(--r-md); box-shadow: var(--shadow-2);
+  }
+  .user-menu[hidden] { display: none; }
+  .user-menu-info { padding: 12px 16px; border-bottom: 1px solid var(--outline-variant); }
+  .user-menu-name { font-weight: 600; font-size: 14px; color: var(--on-surface); }
+  .user-menu-role { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .user-menu-item {
+    width: 100%; padding: 10px 14px; background: transparent;
+    border: 0; text-align: left; cursor: pointer; font-size: 14px;
+    color: var(--on-surface); display: flex; align-items: center; gap: 12px;
+    font-family: inherit; border-radius: 0;
+  }
+  .user-menu-item:hover { background: var(--surface-low); color: var(--primary); }
+  .user-menu-item.hidden { display: none; }
+  .user-menu-item .material-icons { font-size: 20px; }
 
   /* === Mobile/Tablet (≤1280px) — Stitch-like 390px viewport === */
   @media (max-width: 1280px) {
     .mobile-top {
-      display: flex; align-items: center; justify-content: space-between;
-      position: fixed; top: 0; left: 0; right: 0; z-index: 110;
       padding: 12px 16px calc(12px + env(safe-area-inset-top));
       padding-top: max(12px, env(safe-area-inset-top));
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: saturate(180%) blur(12px);
-      -webkit-backdrop-filter: saturate(180%) blur(12px);
-      border-bottom: 1px solid var(--outline-variant);
     }
-    .mobile-top-brand { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; color: var(--on-surface); }
-    .avatar-btn {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-container));
-      color: var(--on-primary); border: 0; cursor: pointer;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 16px; font-family: inherit;
-      box-shadow: var(--shadow-2);
-      transition: transform .15s;
+    .mobile-top-brand {
+      display: block; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; color: var(--on-surface);
     }
-    .avatar-btn:hover { transform: scale(1.05); }
-    .avatar-btn:active { transform: scale(0.97); }
-    .user-menu {
-      position: absolute; top: calc(100% + 6px); right: 16px;
-      min-width: 240px; padding: 6px 0;
-      background: #fff; border: 1px solid var(--outline-variant);
-      border-radius: var(--r-md); box-shadow: var(--shadow-2);
-    }
-    .user-menu[hidden] { display: none; }
-    .user-menu-info { padding: 12px 16px; border-bottom: 1px solid var(--outline-variant); }
-    .user-menu-name { font-weight: 600; font-size: 14px; color: var(--on-surface); }
-    .user-menu-role { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .user-menu-item {
-      width: 100%; padding: 10px 14px; background: transparent;
-      border: 0; text-align: left; cursor: pointer; font-size: 14px;
-      color: var(--on-surface); display: flex; align-items: center; gap: 12px;
-      font-family: inherit; border-radius: 0;
-    }
-    .user-menu-item:hover { background: var(--surface-low); color: var(--primary); }
-    .user-menu-item.hidden { display: none; }
-    .user-menu-item .material-icons { font-size: 20px; }
+    .user-menu { right: 16px; }
     body { font-size: 15px; }
     .sidebar { display: none; }
     main { margin-left: 0; padding: 76px 20px 96px; max-width: 100%; }
@@ -372,29 +699,22 @@
     .bottom-nav .nav-item .material-icons { font-size: 22px; line-height: 1; }
     .bottom-nav .nav-item.active { color: var(--primary); }
 
-    /* === Admin view — stack forms/rows vertically on mobile === */
-    .admin-section { padding: 16px; }
-    .admin-section h3 { font-size: 11px; margin-bottom: 12px; }
-    .admin-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 0; }
-    .admin-row .grow { min-width: 0; }
-    .admin-row select,
-    .admin-row button { width: 100%; margin-left: 0; }
-    #form-my-password,
-    #form-new-user,
-    #form-new-sheet,
-    #form-new-link {
-      grid-template-columns: 1fr !important;
-      gap: 12px !important;
-      margin-top: 14px;
-    }
-    #form-my-password > div,
-    #form-new-user > div,
-    #form-new-sheet > div,
-    #form-new-link > div { width: 100%; }
-    #form-my-password button:not(.pw-toggle),
-    #form-new-user button:not(.pw-toggle),
-    #form-new-sheet button:not(.pw-toggle),
-    #form-new-link button:not(.pw-toggle) { width: 100%; }
+    /* === Admin view — tabs become horizontally scrollable, tables stack on mobile === */
+    .ac-tabs { margin-bottom: 16px; }
+    .ac-tab { padding: 10px 12px; font-size: 13px; }
+    .ac-tab .material-icons { font-size: 16px; }
+    .ac-header h2 { font-size: 20px; line-height: 26px; }
+    .ac-add-form { grid-template-columns: 1fr !important; gap: 12px !important; padding: 14px; }
+    .ac-add-form .ac-form-actions { flex-direction: column-reverse; }
+    .ac-add-form button[type="submit"],
+    .ac-add-form .ac-btn-secondary { width: 100%; }
+    .ac-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .ac-table { min-width: 600px; }
+    .ac-actions { opacity: 1; } /* always visible on touch */
+    .ac-toolbar { padding: 10px 12px; }
+    .ac-profile { padding: 16px; gap: 12px; }
+    .ac-profile .ac-avatar { width: 48px; height: 48px; font-size: 16px; }
+    .ac-profile-name { font-size: 16px; }
   }
   /* === Small phones (≤480px) — Stitch 360px viewport (iPhone SE-ish) === */
   @media (max-width: 480px) {
@@ -631,54 +951,97 @@
     <section id="view-admin" class="view">
       <div class="view-header">
         <h1>Admin</h1>
-        <p>Gestiona usuarios, contraseñas y hojas de cálculo vinculadas.</p>
+        <p>Gestiona usuarios, hojas y vinculaciones.</p>
       </div>
 
-      <div class="admin-grid">
-        <div class="admin-section">
-          <h3>Mi cuenta</h3>
-          <div class="admin-row">
-            <div class="grow">
-              <div><b id="me-username">—</b> <span class="pill user" id="me-rol">user</span></div>
-              <div class="meta">Cambia tu contraseña desde aquí.</div>
-            </div>
+      <nav class="ac-tabs" role="tablist" id="ac-tabs">
+        <button class="ac-tab active" data-tab="usuarios" role="tab" aria-selected="true"><span class="material-icons">group</span>Usuarios</button>
+        <button class="ac-tab" data-tab="hojas" role="tab" aria-selected="false"><span class="material-icons">folder_special</span>Hojas</button>
+        <button class="ac-tab" data-tab="vinculos" role="tab" aria-selected="false"><span class="material-icons">link</span>Vinculaciones</button>
+      </nav>
+
+      <!-- Usuarios -->
+      <div class="ac-panel active" data-tab-panel="usuarios" role="tabpanel">
+        <div class="ac-header">
+          <div>
+            <h2>Usuarios</h2>
+            <p>Administra los accesos y roles del sistema.</p>
           </div>
-          <form id="form-my-password" style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Actual</label><div class="pw-wrap"><input type="password" id="mypw-current" autocomplete="current-password" required><button type="button" class="pw-toggle" data-pw="mypw-current" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nueva (mín. 8)</label><div class="pw-wrap"><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"><button type="button" class="pw-toggle" data-pw="mypw-new" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
-            <button type="submit">Cambiar</button>
-          </form>
+          <button class="ac-btn-primary" id="usuarios-new-btn"><span class="material-icons">add</span>Crear usuario</button>
         </div>
-
-        <div class="admin-section">
-          <h3>Usuarios</h3>
-          <div id="users-list"></div>
-          <form id="form-new-user" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1fr 100px auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.\-]{3,40}"></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><div class="pw-wrap"><input type="password" id="nu-pass" required minlength="8"><button type="button" class="pw-toggle" data-pw="nu-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Rol</label><select id="nu-rol"><option value="basico">basico</option><option value="admin">admin</option></select></div>
+        <form id="form-new-user" class="ac-add-form" hidden>
+          <div><label>Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.\-]{3,40}"></div>
+          <div><label>Contraseña (mín. 8)</label><div class="ac-pw-wrap"><input type="password" id="nu-pass" required minlength="8"><button type="button" class="ac-pw-toggle" data-pw="nu-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
+          <div><label>Rol</label><select id="nu-rol"><option value="basico">básico</option><option value="admin">admin</option></select></div>
+          <div class="ac-form-actions">
+            <button type="button" class="ac-btn-secondary" id="usuarios-cancel-btn">Cancelar</button>
             <button type="submit">Crear</button>
-          </form>
+          </div>
+        </form>
+        <div class="ac-toolbar">
+          <div class="ac-search"><span class="material-icons">search</span><input type="text" id="usuarios-search" placeholder="Buscar por nombre..."></div>
         </div>
+        <div class="ac-card">
+          <table class="ac-table">
+            <thead>
+              <tr><th>Usuario</th><th>Rol</th><th style="text-align:right;">Editar</th></tr>
+            </thead>
+            <tbody id="users-list"></tbody>
+          </table>
+        </div>
+      </div>
 
-        <div class="admin-section">
-          <h3>Hojas de cálculo (spreadsheets)</h3>
-          <div id="sheets-list"></div>
-          <form id="form-new-sheet" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1.5fr 1fr auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Spreadsheet ID</label><input type="text" id="ns-id" required></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nombre</label><input type="text" id="ns-name" required></div>
+      <!-- Hojas -->
+      <div class="ac-panel" data-tab-panel="hojas" role="tabpanel" hidden>
+        <div class="ac-header">
+          <div>
+            <h2>Hojas de cálculo</h2>
+            <p>Directorio de hojas vinculadas a los usuarios.</p>
+          </div>
+          <button class="ac-btn-primary" id="sheets-new-btn"><span class="material-icons">add</span>Añadir hoja</button>
+        </div>
+        <form id="form-new-sheet" class="ac-add-form" hidden>
+          <div><label>Spreadsheet ID</label><input type="text" id="ns-id" required></div>
+          <div><label>Nombre</label><input type="text" id="ns-name" required></div>
+          <div class="ac-form-actions">
+            <button type="button" class="ac-btn-secondary" id="sheets-cancel-btn">Cancelar</button>
             <button type="submit">Añadir</button>
-          </form>
+          </div>
+        </form>
+        <div class="ac-card">
+          <table class="ac-table">
+            <thead>
+              <tr><th>Nombre</th><th>Spreadsheet ID</th><th>Usuarios</th><th style="text-align:right;">Acciones</th></tr>
+            </thead>
+            <tbody id="sheets-list"></tbody>
+          </table>
         </div>
+      </div>
 
-        <div class="admin-section">
-          <h3>Vinculaciones usuario ↔ hoja</h3>
-          <div id="links-list"></div>
-          <form id="form-new-link" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1.5fr auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario</label><select id="nl-user" required></select></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Hoja</label><select id="nl-sheet" required></select></div>
+      <!-- Vinculaciones -->
+      <div class="ac-panel" data-tab-panel="vinculos" role="tabpanel" hidden>
+        <div class="ac-header">
+          <div>
+            <h2>Vinculaciones usuario ↔ hoja</h2>
+            <p>Asigna hojas a los usuarios y su hoja por defecto.</p>
+          </div>
+          <button class="ac-btn-primary" id="links-new-btn"><span class="material-icons">add</span>Vincular</button>
+        </div>
+        <form id="form-new-link" class="ac-add-form" hidden>
+          <div><label>Usuario</label><select id="nl-user" required></select></div>
+          <div><label>Hoja</label><select id="nl-sheet" required></select></div>
+          <div class="ac-form-actions">
+            <button type="button" class="ac-btn-secondary" id="links-cancel-btn">Cancelar</button>
             <button type="submit">Vincular</button>
-          </form>
+          </div>
+        </form>
+        <div class="ac-card">
+          <table class="ac-table">
+            <thead>
+              <tr><th>Usuario</th><th>Hojas</th><th style="text-align:right;">Acciones</th></tr>
+            </thead>
+            <tbody id="links-list"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -689,6 +1052,32 @@
         <h2 style="margin: 16px 0 8px; color: var(--on-surface); font-size: 18px;">Sin hoja de datos enlazada</h2>
         <p style="max-width: 420px; margin: 0 auto;">Tu cuenta todavía no tiene una hoja de cálculo vinculada.<br>Pide al administrador que te asigne una para empezar a registrar tiempos.</p>
       </div>
+    </section>
+
+    <!-- ====== Mi cuenta (full-page, opened from avatar dropdown) ====== -->
+    <section id="view-account" class="view">
+      <div class="view-header">
+        <h1>Mi cuenta</h1>
+        <p>Gestiona tu perfil y contraseña.</p>
+      </div>
+      <div class="ac-profile">
+        <div class="ac-avatar" id="me-avatar">A</div>
+        <div class="ac-profile-info">
+          <div class="ac-profile-name"><span id="me-username">—</span><span class="ac-role" id="me-rol">user</span></div>
+          <div class="ac-profile-meta">Cambia tu contraseña desde el formulario de abajo.</div>
+        </div>
+      </div>
+      <form id="form-my-password" class="ac-add-form" style="grid-template-columns: 1fr 1fr auto; max-width: 720px;">
+        <div>
+          <label>Contraseña actual</label>
+          <div class="ac-pw-wrap"><input type="password" id="mypw-current" autocomplete="current-password" required><button type="button" class="ac-pw-toggle" data-pw="mypw-current" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div>
+        </div>
+        <div>
+          <label>Nueva (mín. 8)</label>
+          <div class="ac-pw-wrap"><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"><button type="button" class="ac-pw-toggle" data-pw="mypw-new" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div>
+        </div>
+        <div class="ac-form-actions"><button type="submit">Cambiar</button></div>
+      </form>
     </section>
   </main>
 
@@ -701,7 +1090,7 @@
     <button class="nav-item hidden" data-view="admin" id="nav-admin-mobile"><span class="material-icons">admin_panel_settings</span>Admin</button>
   </nav>
 
-  <!-- Mobile-only top bar with avatar dropdown (Stitch-style) -->
+  <!-- Top bar with avatar dropdown (visible on all screens; on desktop it's the only top element, brand is hidden) -->
   <div class="mobile-top">
     <div class="mobile-top-brand">TaskTime</div>
     <button class="avatar-btn" id="user-menu-btn" aria-label="Menú de usuario" aria-haspopup="menu" aria-expanded="false">
@@ -712,9 +1101,54 @@
         <div class="user-menu-name" id="user-menu-name">—</div>
         <div class="user-menu-role" id="user-menu-role">—</div>
       </div>
+      <button class="user-menu-item" id="mobile-account-btn" role="menuitem">
+        <span class="material-icons">account_circle</span>Mi cuenta
+      </button>
       <button class="user-menu-item" id="mobile-logout-btn" role="menuitem">
         <span class="material-icons">logout</span>Cerrar sesión
       </button>
+    </div>
+  </div>
+
+  <!-- Edit user modal (Stitch-style overlay) -->
+  <div class="ac-modal" id="edit-user-modal" hidden>
+    <div class="ac-modal-overlay" data-modal-close></div>
+    <div class="ac-modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-user-title">
+      <div class="ac-modal-header">
+        <h2 id="edit-user-title">Editar usuario</h2>
+        <button class="ac-icon-btn" data-modal-close aria-label="Cerrar"><span class="material-icons">close</span></button>
+      </div>
+      <form id="form-edit-user" class="ac-modal-body">
+        <input type="hidden" id="eu-username">
+        <div class="ac-modal-user">
+          <div class="ac-avatar" id="eu-avatar">A</div>
+          <div>
+            <div class="ac-user-name" id="eu-display-name">—</div>
+            <div class="ac-user-meta" id="eu-status">—</div>
+          </div>
+        </div>
+        <div>
+          <label for="eu-rol">Rol</label>
+          <select id="eu-rol">
+            <option value="basico">básico</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+        <div>
+          <label for="eu-pass">Nueva contraseña (opcional)</label>
+          <div class="ac-pw-wrap">
+            <input type="password" id="eu-pass" minlength="8" autocomplete="new-password" placeholder="Dejar en blanco para mantener la actual">
+            <button type="button" class="ac-pw-toggle" data-pw="eu-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button>
+          </div>
+          <div class="ac-modal-hint">Mínimo 8 caracteres. Déjalo en blanco para mantener la contraseña actual.</div>
+        </div>
+      </form>
+      <div class="ac-modal-actions">
+        <button type="button" class="ac-modal-delete" id="eu-delete"><span class="material-icons">delete</span>Eliminar usuario</button>
+        <div class="ac-modal-spacer"></div>
+        <button type="button" class="ac-btn-secondary" data-modal-close>Cancelar</button>
+        <button type="submit" form="form-edit-user" class="ac-btn-primary">Guardar cambios</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1113,8 +1547,14 @@ function bindMobileMenu() {
     menu.hidden = true;
     btn.setAttribute('aria-expanded', 'false');
   });
-  // Item Admin del dropdown: navega a la vista admin
-  }
+  // Item Mi cuenta del dropdown: navega a la vista account, cierra el menú
+  const accountBtn = $('#mobile-account-btn');
+  if (accountBtn) accountBtn.addEventListener('click', () => {
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    showView('account');
+  });
+}
 
 function showFatal(e) {
   document.body.innerHTML = `<pre style="color:#b00020; padding:20px; white-space:pre-wrap;">${e.message}</pre>`;
@@ -1142,7 +1582,7 @@ function togglePw(btn) {
   btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
 }
 
-const VIEWS = ['dashboard','tasks','habits','stats','reports','admin'];
+const VIEWS = ['dashboard','tasks','habits','stats','reports','admin','account'];
 
 function bindNav() {
   $$('.nav-item').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
@@ -1155,8 +1595,9 @@ function bindNav() {
     if (Math.abs(dx) < 50) return;
     const cur = VIEWS.indexOf($('.nav-item.active')?.dataset.view);
     const visibleViews = VIEWS.filter(v => {
-      if (v !== 'admin') return true;
-      return (readSession() || {}).rol === 'admin';
+      if (v === 'admin') return (readSession() || {}).rol === 'admin';
+      if (v === 'account') return false; // ponytail: no swipe a Mi cuenta — vive en el dropdown del avatar
+      return true;
     });
     const idxInVisible = visibleViews.indexOf($('.nav-item.active')?.dataset.view);
     const next = dx < 0 ? Math.min(idxInVisible+1, visibleViews.length-1) : Math.max(idxInVisible-1, 0);
@@ -1838,8 +2279,11 @@ let adminUsers = [], adminSheets = [], adminLinks = [];
 
 async function renderAdmin() {
   const session = readSession() || {};
-  $('#me-username').textContent = session.user || '—';
+  const username = session.user || '—';
+  $('#me-username').textContent = username;
   $('#me-rol').textContent = session.rol || 'user';
+  const meAvatar = $('#me-avatar');
+  if (meAvatar) meAvatar.textContent = (username || 'A').trim().charAt(0).toUpperCase() || 'A';
   try {
     [adminUsers, adminSheets, adminLinks] = await Promise.all([
       call('listarUsuariosAdmin'),
@@ -1853,70 +2297,94 @@ async function renderAdmin() {
   paintUsers(); paintSheets(); paintLinks(); refreshLinkFormSelects();
 }
 
-function pill(text, klass) { return `<span class="pill ${klass || ''}">${escapeHtml(text)}</span>`; }
+function acAvatar(name) {
+  return (name || '?').trim().charAt(0).toUpperCase() || '?';
+}
 
 function paintUsers() {
   const wrap = $('#users-list');
-  wrap.innerHTML = adminUsers.map(u => `
-    <div class="admin-row" data-username="${escapeHtml(u.username)}">
-      <div class="grow">
-        <b>${escapeHtml(u.username)}</b>
-        ${pill(u.rol, u.rol === 'admin' ? 'admin' : 'user')}
-        ${u.activo ? '' : pill('inactivo', 'inactive')}
-      </div>
-      <select class="rol-sel">
-        <option value="basico" ${u.rol==='basico'?'selected':''}>basico</option>
-        <option value="admin"  ${u.rol==='admin' ?'selected':''}>admin</option>
-      </select>
-      <button class="secondary rol-save">Guardar rol</button>
-      <button class="secondary pw-reset">Cambiar contraseña</button>
-      <button class="del user-del">Eliminar</button>
-    </div>
-  `).join('') || '<div class="empty">No hay usuarios.</div>';
-  $$('#users-list .rol-save').forEach(b => b.onclick = () => onChangeRol(b.closest('.admin-row')));
-  $$('#users-list .pw-reset').forEach(b => b.onclick = () => onResetUserPass(b.closest('.admin-row')));
-  $$('#users-list .user-del').forEach(b => b.onclick = () => onDeleteUser(b.closest('.admin-row')));
+  const search = ($('#usuarios-search')?.value || '').toLowerCase();
+  const filtered = adminUsers.filter(u => u.username.toLowerCase().includes(search));
+  wrap.innerHTML = filtered.map(u => `
+    <tr data-username="${escapeHtml(u.username)}">
+      <td>
+        <div class="ac-user-cell">
+          <div class="ac-avatar">${acAvatar(u.username)}</div>
+          <div>
+            <div class="ac-user-name">${escapeHtml(u.username)}</div>
+            ${u.activo ? '' : '<div class="ac-user-meta">desactivado</div>'}
+          </div>
+        </div>
+      </td>
+      <td><span class="ac-role ${u.rol === 'admin' ? 'admin' : 'basico'}">${escapeHtml(u.rol)}</span></td>
+      <td>
+        <div class="ac-actions" style="opacity:1;">
+          <button class="ac-icon-btn user-edit" title="Editar" aria-label="Editar usuario"><span class="material-icons">edit</span></button>
+        </div>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="3" class="ac-empty">No hay usuarios.</td></tr>`;
+  $$('#users-list .user-edit').forEach(b => b.onclick = () => openEditUserModal(b.closest('tr').dataset.username));
 }
 
 function paintSheets() {
   const wrap = $('#sheets-list');
   wrap.innerHTML = adminSheets.map(s => `
-    <div class="admin-row" data-sid="${escapeHtml(s.spreadsheet_id)}">
-      <div class="grow">
-        <b>${escapeHtml(s.nombre)}</b>
-        <div class="meta"><code>${escapeHtml(s.spreadsheet_id)}</code> · ${s.usuarios.length} usuario${s.usuarios.length===1?'':'s'}</div>
-      </div>
-      <button class="secondary sheet-rename">Renombrar</button>
-      <button class="del sheet-del">Eliminar</button>
-    </div>
-  `).join('') || '<div class="empty">No hay hojas registradas.</div>';
-  $$('#sheets-list .sheet-rename').forEach(b => b.onclick = () => onRenameSheet(b.closest('.admin-row')));
-  $$('#sheets-list .sheet-del').forEach(b => b.onclick = () => onDeleteSheet(b.closest('.admin-row')));
+    <tr data-sid="${escapeHtml(s.spreadsheet_id)}">
+      <td>
+        <div class="ac-user-cell">
+          <div class="ac-avatar" style="background:linear-gradient(135deg, var(--secondary), #005a40);">${acAvatar(s.nombre)}</div>
+          <div>
+            <div class="ac-user-name">${escapeHtml(s.nombre)}</div>
+            <div class="ac-user-meta">${s.usuarios.length} usuario${s.usuarios.length===1?'':'s'}</div>
+          </div>
+        </div>
+      </td>
+      <td><code style="font-size:12px; color:var(--on-surface-variant);">${escapeHtml(s.spreadsheet_id)}</code></td>
+      <td>${s.usuarios.length}</td>
+      <td>
+        <div class="ac-actions">
+          <button class="ac-icon-btn sheet-rename" title="Renombrar" aria-label="Renombrar"><span class="material-icons">edit</span></button>
+          <button class="ac-icon-btn danger sheet-del" title="Eliminar" aria-label="Eliminar"><span class="material-icons">delete</span></button>
+        </div>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="ac-empty">No hay hojas registradas.</td></tr>`;
+  $$('#sheets-list .sheet-rename').forEach(b => b.onclick = () => onRenameSheet(b.closest('tr')));
+  $$('#sheets-list .sheet-del').forEach(b => b.onclick = () => onDeleteSheet(b.closest('tr')));
 }
 
 function paintLinks() {
   const wrap = $('#links-list');
   wrap.innerHTML = adminLinks.map(l => `
-    <div class="admin-row" data-u="${escapeHtml(l.username)}">
-      <div class="grow">
-        <b>${escapeHtml(l.username)}</b>
-        <div class="meta">${l.hojas.length} hoja${l.hojas.length===1?'':'s'}</div>
-      </div>
-      <div style="display:flex; flex-wrap:wrap; gap:6px;">
-        ${l.hojas.map(h => `
-          <span class="pill ${h.por_defecto ? 'default' : 'user'}" title="${escapeHtml(h.spreadsheet_id)}">
-            ${escapeHtml(h.nombre)}
-            ${h.por_defecto ? '★' : ''}
-            <a href="#" data-act="default" data-sid="${escapeHtml(h.spreadsheet_id)}" style="color:inherit; margin-left:6px;">★</a>
-            <a href="#" data-act="unlink" data-sid="${escapeHtml(h.spreadsheet_id)}" style="color:var(--error); margin-left:4px;">×</a>
-          </span>
-        `).join('') || '<span class="meta">(sin hojas)</span>'}
-      </div>
-    </div>
-  `).join('') || '<div class="empty">No hay usuarios.</div>';
+    <tr data-u="${escapeHtml(l.username)}">
+      <td>
+        <div class="ac-user-cell">
+          <div class="ac-avatar">${acAvatar(l.username)}</div>
+          <div>
+            <div class="ac-user-name">${escapeHtml(l.username)}</div>
+            <div class="ac-user-meta">${l.hojas.length} hoja${l.hojas.length===1?'':'s'}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${l.hojas.map(h => `
+            <span class="ac-link-pill ${h.por_defecto ? 'default' : ''}" title="${escapeHtml(h.spreadsheet_id)}">
+              <span class="material-icons">${h.por_defecto ? 'star' : 'description'}</span>
+              ${escapeHtml(h.nombre)}
+              <a href="#" data-act="default" data-sid="${escapeHtml(h.spreadsheet_id)}" title="${h.por_defecto ? 'Ya es por defecto' : 'Marcar por defecto'}" aria-label="Marcar por defecto"><span class="material-icons">${h.por_defecto ? 'star' : 'star_outline'}</span></a>
+              <a href="#" class="del" data-act="unlink" data-sid="${escapeHtml(h.spreadsheet_id)}" title="Desvincular" aria-label="Desvincular"><span class="material-icons">close</span></a>
+            </span>
+          `).join('') || '<span class="ac-user-meta">(sin hojas)</span>'}
+        </div>
+      </td>
+      <td></td>
+    </tr>
+  `).join('') || `<tr><td colspan="3" class="ac-empty">No hay usuarios.</td></tr>`;
   $$('#links-list [data-act]').forEach(a => a.onclick = (ev) => {
     ev.preventDefault();
-    const row = a.closest('.admin-row');
+    const row = a.closest('tr');
     const username = row.dataset.u;
     const sid = a.dataset.sid;
     if (a.dataset.act === 'default') onSetDefault(username, sid);
@@ -1930,25 +2398,52 @@ function refreshLinkFormSelects() {
   s.innerHTML = adminSheets.map(x => `<option value="${escapeHtml(x.spreadsheet_id)}">${escapeHtml(x.nombre)}</option>`).join('');
 }
 
-async function onChangeRol(row) {
-  const username = row.dataset.username;
-  const rol = row.querySelector('.rol-sel').value;
-  try { await call('cambiarRolUsuarioAdmin', username, rol); toast('Rol actualizado'); renderAdmin(); }
-  catch (e) { toast(e.message, 'warn'); }
+// === Edit user modal (Stitch-style) ===
+function openEditUserModal(username) {
+  const u = adminUsers.find(x => x.username === username);
+  if (!u) return;
+  $('#eu-username').value = u.username;
+  $('#eu-display-name').textContent = u.username;
+  $('#eu-avatar').textContent = acAvatar(u.username);
+  $('#eu-status').textContent = u.activo ? '' : 'desactivado';
+  $('#eu-rol').value = u.rol === 'admin' ? 'admin' : 'basico';
+  $('#eu-pass').value = '';
+  $('#edit-user-modal').hidden = false;
+  // ponytail: autofocus al select de rol — el campo más probable a editar
+  setTimeout(() => $('#eu-rol').focus(), 50);
 }
-async function onResetUserPass(row) {
-  const username = row.dataset.username;
-  const np = prompt(`Nueva contraseña para "${username}" (mín. 8 caracteres):`);
-  if (!np) return;
-  if (np.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'warn'); return; }
-  try { await call('resetearContrasenaAdmin', username, np); toast('Contraseña actualizada'); }
-  catch (e) { toast(e.message, 'warn'); }
+function closeEditUserModal() { $('#edit-user-modal').hidden = true; }
+
+async function onEditUserSubmit(ev) {
+  ev.preventDefault();
+  const username = $('#eu-username').value;
+  const rol = $('#eu-rol').value;
+  const np = $('#eu-pass').value;
+  const original = adminUsers.find(x => x.username === username);
+  if (!original) return;
+  try {
+    if (original.rol !== rol) {
+      await call('cambiarRolUsuarioAdmin', username, rol);
+    }
+    if (np) {
+      if (np.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'warn'); return; }
+      await call('resetearContrasenaAdmin', username, np);
+    }
+    toast('Usuario actualizado');
+    closeEditUserModal();
+    renderAdmin();
+  } catch (e) { toast(e.message, 'warn'); }
 }
-async function onDeleteUser(row) {
-  const username = row.dataset.username;
+
+async function onEditUserDelete() {
+  const username = $('#eu-username').value;
   if (!confirm(`¿Eliminar al usuario "${username}"? Sus vinculaciones también se borrarán.`)) return;
-  try { await call('eliminarUsuarioAdmin', username); toast('Usuario eliminado'); renderAdmin(); }
-  catch (e) { toast(e.message, 'warn'); }
+  try {
+    await call('eliminarUsuarioAdmin', username);
+    toast('Usuario eliminado');
+    closeEditUserModal();
+    renderAdmin();
+  } catch (e) { toast(e.message, 'warn'); }
 }
 async function onRenameSheet(row) {
   const sid = row.dataset.sid;
@@ -1975,6 +2470,47 @@ async function onUnlink(username, sid) {
 }
 
 function bindAdmin() {
+  // Tab switching
+  $$('#ac-tabs .ac-tab').forEach(btn => btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    $$('#ac-tabs .ac-tab').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    $$('#view-admin .ac-panel').forEach(p => {
+      const on = p.dataset.tabPanel === target;
+      p.classList.toggle('active', on);
+      p.hidden = !on;
+    });
+  }));
+
+  // Form toggles (Crear / Añadir / Vincular)
+  const toggleForm = (formId, btnId, cancelId) => {
+    const form = $('#' + formId);
+    const btn  = $('#' + btnId);
+    if (!form || !btn) return;
+    btn.addEventListener('click', () => { form.hidden = !form.hidden; if (!form.hidden) form.querySelector('input')?.focus(); });
+    const cancel = $('#' + cancelId);
+    if (cancel) cancel.addEventListener('click', () => { form.hidden = true; form.reset(); });
+  };
+  toggleForm('form-new-user',  'usuarios-new-btn', 'usuarios-cancel-btn');
+  toggleForm('form-new-sheet', 'sheets-new-btn',   'sheets-cancel-btn');
+  toggleForm('form-new-link',  'links-new-btn',    'links-cancel-btn');
+
+  // Search filter (re-render as user types)
+  const search = $('#usuarios-search');
+  if (search) search.addEventListener('input', paintUsers);
+
+  // Edit user modal (Stitch-style overlay)
+  $$('#edit-user-modal [data-modal-close]').forEach(el => el.addEventListener('click', closeEditUserModal));
+  $('#form-edit-user').addEventListener('submit', onEditUserSubmit);
+  $('#eu-delete').addEventListener('click', onEditUserDelete);
+  // ponytail: ESC cierra el modal — listener global, sin libs
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#edit-user-modal').hidden) closeEditUserModal();
+  });
+
   $('#form-my-password').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const cur = $('#mypw-current').value;
@@ -1991,6 +2527,7 @@ function bindAdmin() {
       await call('crearUsuarioAdmin', $('#nu-user').value.trim(), $('#nu-pass').value, $('#nu-rol').value);
       toast('Usuario creado');
       $('#form-new-user').reset();
+      $('#form-new-user').hidden = true;
       renderAdmin();
     } catch (e) { toast(e.message, 'warn'); }
   });
@@ -2000,6 +2537,7 @@ function bindAdmin() {
       await call('altaSpreadsheetAdmin', $('#ns-id').value.trim(), $('#ns-name').value.trim(), '');
       toast('Spreadsheet añadido');
       $('#form-new-sheet').reset();
+      $('#form-new-sheet').hidden = true;
       renderAdmin();
     } catch (e) { toast(e.message, 'warn'); }
   });
@@ -2008,6 +2546,8 @@ function bindAdmin() {
     try {
       await call('vincularHojaUsuarioAdmin', $('#nl-user').value, $('#nl-sheet').value, false);
       toast('Vinculación creada');
+      $('#form-new-link').reset();
+      $('#form-new-link').hidden = true;
       renderAdmin();
     } catch (e) { toast(e.message, 'warn'); }
   });

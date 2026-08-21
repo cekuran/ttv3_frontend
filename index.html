@@ -345,10 +345,11 @@
     <label for="setup-sheet-id">Spreadsheet ID o URL del Sheet</label>
     <input type="text" id="setup-sheet-id" placeholder="1aBcDeFg…  o  https://docs.google.com/spreadsheets/d/1aBcDeFg…/edit" required autocomplete="off">
     <label for="setup-admin-user">Usuario admin</label>
-    <input type="text" id="setup-admin-user" value="admin" required pattern="[A-Za-z0-9_.-]{3,40}" autocomplete="username">
+    <input type="text" id="setup-admin-user" value="admin" required pattern="[A-Za-z0-9_.\-]{3,40}" autocomplete="username">
     <label for="setup-admin-pass">Contraseña admin (mín. 8)</label>
     <input type="password" id="setup-admin-pass" required minlength="8" autocomplete="new-password">
     <button type="submit">Crear configuración</button>
+    <button type="button" id="setup-retry" class="secondary" hidden>Reintentar</button>
     <div class="err" id="setup-err"></div>
     <div class="hint">El script debe tener acceso de edición al Sheet (compártelo con la cuenta que ejecuta el Web App). Después de guardar, pasarás a la pantalla de login.</div>
   </form>
@@ -571,7 +572,7 @@
           <h3>Usuarios</h3>
           <div id="users-list"></div>
           <form id="form-new-user" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1fr 100px auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.-]{3,40}"></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.\-]{3,40}"></div>
             <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><input type="password" id="nu-pass" required minlength="8"></div>
             <div><label style="font-size:11px;color:var(--on-surface-variant);">Rol</label><select id="nu-rol"><option value="basico">basico</option><option value="admin">admin</option></select></div>
             <button type="submit">Crear</button>
@@ -698,6 +699,14 @@ async function rawCall(fn, ...args) {
     throw new Error('No se pudo contactar la API (' + API_URL + '): ' + err.message);
   }
   const text = await response.text();
+  // 504/502 del proxy → mensaje accionable (cold-start, deploy, red).
+  if (response.status === 504 || response.status === 502) {
+    const msg = (text || '').trim() || `HTTP ${response.status}`;
+    if (/timeout/i.test(msg) || response.status === 504) {
+      throw new Error('El backend está arrancando (cold-start tras deploy). Espera ~30 segundos y vuelve a intentarlo.');
+    }
+    throw new Error('El proxy no pudo contactar el backend (' + msg + '). Revisa que el Web App /exec esté publicado.');
+  }
   let payload;
   try { payload = JSON.parse(text); }
   catch (e) {
@@ -886,20 +895,26 @@ function extractSheetId_(raw) {
 }
 
 function bindSetup() {
-  $('#setup-form').addEventListener('submit', async (ev) => {
+  const form = $('#setup-form');
+  const retry = $('#setup-retry');
+  // ponytail: el botón "Reintentar" sólo aparece cuando el último submit
+  // falló por timeout/cold-start. Resubmite con los mismos valores.
+  retry.addEventListener('click', () => form.requestSubmit());
+
+  form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const sid = extractSheetId_($('#setup-sheet-id').value);
     const usr = $('#setup-admin-user').value.trim();
     const pwd = $('#setup-admin-pass').value;
     $('#setup-err').textContent = '';
+    retry.hidden = true;
     if (!sid) { $('#setup-err').textContent = 'Spreadsheet ID inválido. Pega la URL completa del Sheet o su ID.'; return; }
-    if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(usr)) { $('#setup-err').textContent = 'Usuario inválido (3-40, letras, números, _.-).'; return; }
+    if (!/^[a-zA-Z0-9_.\-]{3,40}$/.test(usr)) { $('#setup-err').textContent = 'Usuario inválido (3-40, letras, números, _.-).'; return; }
     if (!pwd || pwd.length < 8) { $('#setup-err').textContent = 'La contraseña debe tener mínimo 8 caracteres.'; return; }
-    const submitBtn = ev.target.querySelector('button[type="submit"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
       await call('configurarSpreadsheetMaestro', sid, usr, pwd);
-      // Listo: pasamos a login con el admin recién creado.
       $('#setup-screen').hidden = true;
       $('#login-user').value = usr;
       $('#login-pass').value = '';
@@ -907,6 +922,11 @@ function bindSetup() {
       toast('Configuración guardada. Inicia sesión.');
     } catch (e) {
       $('#setup-err').textContent = e.message;
+      // Si parece cold-start / timeout del backend, muestra botón de reintento.
+      if (/arrancando|cold-start|timeout|tiempo/i.test(e.message)) {
+        retry.hidden = false;
+        retry.focus();
+      }
     } finally {
       submitBtn.disabled = false;
     }

@@ -255,11 +255,55 @@
   .preview-table tr:last-child td { border-bottom: 0; }
   .preview-table td b { font-family: 'JetBrains Mono', ui-monospace, monospace; }
 
+  /* === Mobile top bar — Stitch-style app-bar with avatar dropdown === */
+  .mobile-top { display: none; }
+
   /* === Mobile/Tablet (≤1280px) — Stitch-like 390px viewport === */
   @media (max-width: 1280px) {
+    .mobile-top {
+      display: flex; align-items: center; justify-content: space-between;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 110;
+      padding: 12px 16px calc(12px + env(safe-area-inset-top));
+      padding-top: max(12px, env(safe-area-inset-top));
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: saturate(180%) blur(12px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .mobile-top-brand { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; color: var(--on-surface); }
+    .avatar-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+      color: var(--on-primary); border: 0; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; font-family: inherit;
+      box-shadow: var(--shadow-2);
+      transition: transform .15s;
+    }
+    .avatar-btn:hover { transform: scale(1.05); }
+    .avatar-btn:active { transform: scale(0.97); }
+    .user-menu {
+      position: absolute; top: calc(100% + 6px); right: 16px;
+      min-width: 240px; padding: 6px 0;
+      background: #fff; border: 1px solid var(--outline-variant);
+      border-radius: var(--r-md); box-shadow: var(--shadow-2);
+    }
+    .user-menu[hidden] { display: none; }
+    .user-menu-info { padding: 12px 16px; border-bottom: 1px solid var(--outline-variant); }
+    .user-menu-name { font-weight: 600; font-size: 14px; color: var(--on-surface); }
+    .user-menu-role { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .user-menu-item {
+      width: 100%; padding: 10px 14px; background: transparent;
+      border: 0; text-align: left; cursor: pointer; font-size: 14px;
+      color: var(--on-surface); display: flex; align-items: center; gap: 12px;
+      font-family: inherit; border-radius: 0;
+    }
+    .user-menu-item:hover { background: var(--surface-low); color: var(--primary); }
+    .user-menu-item.hidden { display: none; }
+    .user-menu-item .material-icons { font-size: 20px; }
     body { font-size: 15px; }
     .sidebar { display: none; }
-    main { margin-left: 0; padding: 20px 20px 96px; max-width: 100%; }
+    main { margin-left: 0; padding: 76px 20px 96px; max-width: 100%; }
     .view-header h1 { font-size: 24px; line-height: 1.2; }
     .view-header p  { font-size: 13px; }
     .stat-grid { grid-template-columns: 1fr; gap: 12px; }
@@ -632,6 +676,26 @@
     <button class="nav-item" data-view="reports"><span class="material-icons">description</span>Reports</button>
     <button class="nav-item hidden" data-view="admin" id="nav-admin-mobile"><span class="material-icons">admin_panel_settings</span>Admin</button>
   </nav>
+
+  <!-- Mobile-only top bar with avatar dropdown (Stitch-style) -->
+  <div class="mobile-top">
+    <div class="mobile-top-brand">TaskTime</div>
+    <button class="avatar-btn" id="user-menu-btn" aria-label="Menú de usuario" aria-haspopup="menu" aria-expanded="false">
+      <span id="user-avatar-initial">T</span>
+    </button>
+    <div class="user-menu" id="user-menu" hidden role="menu">
+      <div class="user-menu-info">
+        <div class="user-menu-name" id="user-menu-name">—</div>
+        <div class="user-menu-role" id="user-menu-role">—</div>
+      </div>
+      <button class="user-menu-item hidden" id="user-menu-admin" role="menuitem" data-view="admin">
+        <span class="material-icons">admin_panel_settings</span>Admin
+      </button>
+      <button class="user-menu-item" id="mobile-logout-btn" role="menuitem">
+        <span class="material-icons">logout</span>Cerrar sesión
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -881,12 +945,19 @@ async function startApp() {
   $('#app').hidden = false;
   const session = readSession() || {};
   $('#brand-user').textContent = session.user ? `${session.user} · ${session.rol || ''}` : '—';
+  // Mobile top bar avatar + dropdown: pinta inicial, nombre y rol del usuario
+  // ponytail: usa la inicial del username como "logo" — sin avatar real, sin uploads, sin libs
+  const mobileInitial = (session.user || 'T').trim().charAt(0).toUpperCase() || 'T';
+  $('#user-avatar-initial').textContent = mobileInitial;
+  $('#user-menu-name').textContent = session.user || '—';
+  $('#user-menu-role').textContent = session.rol || '—';
   // Mostrar el item Admin sólo a administradores.
   const isAdmin = (session.rol || '') === 'admin';
   // ponytail: reset de todos los nav-items — por si el usuario volvió a tener hoja tras un reload
   $$('.sidebar .nav-item, .bottom-nav .nav-item').forEach(b => b.classList.remove('hidden'));
   $('#nav-admin').classList.toggle('hidden', !isAdmin);
   $('#nav-admin-mobile').classList.toggle('hidden', !isAdmin);
+  $('#user-menu-admin').classList.toggle('hidden', !isAdmin);
 
   try {
     const boot = await call('bootstrap');
@@ -899,6 +970,7 @@ async function startApp() {
     bindNav();
     bindGlobal();
     bindLogout();
+    bindMobileMenu();
     bindAdmin();
     refreshAll();
     if (state.activeTimer) startTicker();
@@ -997,6 +1069,36 @@ function bindLogout() {
     showLogin();
   };
   $('#logout-btn').addEventListener('click', handler);
+  // ponytail: el botón "Cerrar sesión" del dropdown móvil reusa el mismo handler
+  $('#mobile-logout-btn').addEventListener('click', () => {
+    const m = $('#user-menu'); if (m) m.hidden = true;
+    handler();
+  });
+}
+
+function bindMobileMenu() {
+  const btn = $('#user-menu-btn');
+  const menu = $('#user-menu');
+  if (!btn || !menu) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = menu.hidden;
+    menu.hidden = !willOpen;
+    btn.setAttribute('aria-expanded', String(willOpen));
+  });
+  // ponytail: click fuera cierra el dropdown — listener global, sin libs
+  document.addEventListener('click', (e) => {
+    if (menu.hidden) return;
+    if (menu.contains(e.target) || e.target === btn) return;
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  });
+  // Item Admin del dropdown: navega a la vista admin
+  $('#user-menu-admin').addEventListener('click', () => {
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    showView('admin');
+  });
 }
 
 function showFatal(e) {

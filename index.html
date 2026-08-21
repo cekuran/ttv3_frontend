@@ -672,7 +672,7 @@ function labelColor(id)  { const l = labelById(id); return l ? l.color : '#9aa0a
 // ==== Backend API ====
 // API_URL is rewritten by tools/Set-ApiDeployment.ps1 (option 1).
 // Default targets the local Cloudflare Worker (npm run dev in proxy/).
-const API_URL = 'https://tasktime-cors-proxy.marquezhh.workers.dev';
+const API_URL = 'http://127.0.0.1:8787';
 
 // ==== Auth ====
 const AUTH_TOKEN_KEY = 'tasktime_auth_token';
@@ -703,15 +703,16 @@ async function rawCallImpl(fn, args, attempt) {
   // 504/502 del proxy → mensaje accionable (cold-start, deploy, red).
   if (response.status === 504 || response.status === 502) {
     const msg = (text || '').trim() || `HTTP ${response.status}`;
-    // ponytail: 504 casi siempre es cold-start de Apps Script tras deploy.
-    // El primer fetch calienta el runtime, el segundo entra en <2 s.
-    // Reintentamos una vez tras 5 s antes de fallar — transparente para el usuario.
-    if (response.status === 504 && attempt < 1) {
-      await new Promise(r => setTimeout(r, 5000));
+    // Cold-start de Apps Script: la 1.ª petición agota el timeout del proxy (29s)
+    // mientras el runtime arranca. Esperamos 30s (Apps Script suele estar listo
+    // en 30-60s desde el primer hit) y reintentamos hasta 2 veces antes de fallar.
+    if (response.status === 504 && attempt < 2) {
+      const waitMs = attempt === 0 ? 30000 : 15000; // 30s → 1.er reintento, 15s → 2.º
+      await new Promise(r => setTimeout(r, waitMs));
       return rawCallImpl(fn, args, attempt + 1);
     }
     if (/timeout/i.test(msg) || response.status === 504) {
-      throw new Error('El backend está arrancando (cold-start tras deploy). Espera ~30 segundos y vuelve a intentarlo.');
+      throw new Error('El backend está arrancando (cold-start). Espera unos segundos y vuelve a intentarlo.');
     }
     throw new Error('El proxy no pudo contactar el backend (' + msg + '). Revisa que el Web App /exec esté publicado.');
   }
@@ -774,7 +775,7 @@ function populateTimerTaskSelect() {
 const PALETTE_C = ['#4285F4','#EA4335','#FBBC04','#34A853','#A142F4','#24C1E0','#FF6D00','#7B1FA2'];
 
 // ==== Bootstrap ====
-const PING_TIMEOUT_MS = 70000; // must exceed rawCallImpl worst-case: 29s proxy + 5s wait + 29s retry ≈ 63s
+const PING_TIMEOUT_MS = 115000; // cubre hasta 3 intentos de rawCallImpl: 29s + 30s + 29s + 15s + 29s ≈ 132s → margen extra
 
 function pingWithTimeout(token) {
   return new Promise((resolve, reject) => {

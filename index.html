@@ -122,6 +122,7 @@
   /* ponytail: .login-screen { display:flex } tiene la misma specificity que [hidden]
      (UA stylesheet), así que el atributo hidden no oculta nada sin esta regla. */
   .login-screen[hidden] { display: none !important; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .login-card {
     background: #fff; padding: 32px 28px; border-radius: var(--r-xl);
     box-shadow: var(--shadow-2); width: 100%; max-width: 380px;
@@ -353,8 +354,17 @@
   </form>
 </div>
 
+<!-- ==== Boot (cargando, mientras ping() viaja al backend) ==== -->
+<div class="login-screen" id="boot-screen">
+  <div class="login-card" style="text-align:center;">
+    <h1 style="margin-bottom: 8px;">TaskTime</h1>
+    <div class="sub" id="boot-status">Conectando con el backend…</div>
+    <div style="margin: 18px auto 8px; width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--outline-variant); border-top-color: var(--primary); animation: spin 0.9s linear infinite;"></div>
+  </div>
+</div>
+
 <!-- ==== Login ==== -->
-<div class="login-screen" id="login-screen">
+<div class="login-screen" id="login-screen" hidden>
   <form class="login-card" id="login-form" autocomplete="on">
     <h1>TaskTime</h1>
     <div class="sub">Inicia sesión para continuar</div>
@@ -746,16 +756,35 @@ function populateTimerTaskSelect() {
 const PALETTE_C = ['#4285F4','#EA4335','#FBBC04','#34A853','#A142F4','#24C1E0','#FF6D00','#7B1FA2'];
 
 // ==== Bootstrap ====
+const PING_TIMEOUT_MS = 8000;
+
+function pingWithTimeout(token) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), PING_TIMEOUT_MS);
+    call('ping', token).then(
+      v => { clearTimeout(t); resolve(v); },
+      e => { clearTimeout(t); reject(e); }
+    );
+  });
+}
+
 async function init() {
   bindLogin();
   bindSetup();
-  // 1) ¿Está configurado el spreadsheet maestro? ping() no requiere token.
+  // boot-screen está visible por defecto. Se quita al final con hideBoot().
+  // 1) ¿Está configurado el spreadsheet maestro?
   let masterOk = false;
+  let pingErr = '';
   try {
-    const p = await call('ping');
+    const p = await pingWithTimeout();
     masterOk = !!(p && p.ok);
-  } catch (e) { /* red caída: caer al setup para que el error sea visible */ masterOk = false; }
-  if (!masterOk) { showSetup(); return; }
+    if (!masterOk) pingErr = 'Sin spreadsheet maestro configurado';
+  } catch (e) {
+    pingErr = e.message || String(e);
+    masterOk = false;
+  }
+  hideBoot();
+  if (!masterOk) { showSetup(pingErr); return; }
 
   // 2) ¿Hay token guardado? Validar con el servidor.
   if (authToken()) {
@@ -772,24 +801,28 @@ async function init() {
   showLogin();
 }
 
-function showSetup() {
+function hideBoot() { $('#boot-screen').hidden = true; }
+
+function showSetup(reason) {
   $('#app').hidden = true;
-  $('#login-screen').style.display = 'none';
+  $('#login-screen').hidden = true;
   $('#setup-screen').hidden = false;
-  $('#setup-err').textContent = '';
+  $('#setup-err').textContent = reason || '';
   $('#setup-sheet-id').focus();
 }
 
 function showLogin() {
   $('#app').hidden = true;
   $('#setup-screen').hidden = true;
-  $('#login-screen').style.display = 'flex';
+  $('#boot-screen').hidden = true;
+  $('#login-screen').hidden = false;
   $('#login-err').textContent = '';
   $('#login-user').focus();
 }
 
 async function startApp() {
-  $('#login-screen').style.display = 'none';
+  $('#login-screen').hidden = true;
+  $('#boot-screen').hidden = true;
   $('#app').hidden = false;
   const session = readSession() || {};
   $('#brand-user').textContent = session.user ? `${session.user} · ${session.rol || ''}` : '—';

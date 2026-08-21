@@ -371,6 +371,30 @@
     .bottom-nav .nav-item { flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; font-size: 11px; min-width: 0; flex: 1; border-radius: var(--r-md); }
     .bottom-nav .nav-item .material-icons { font-size: 22px; line-height: 1; }
     .bottom-nav .nav-item.active { color: var(--primary); }
+
+    /* === Admin view — stack forms/rows vertically on mobile === */
+    .admin-section { padding: 16px; }
+    .admin-section h3 { font-size: 11px; margin-bottom: 12px; }
+    .admin-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 0; }
+    .admin-row .grow { min-width: 0; }
+    .admin-row select,
+    .admin-row button { width: 100%; margin-left: 0; }
+    #form-my-password,
+    #form-new-user,
+    #form-new-sheet,
+    #form-new-link {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+      margin-top: 14px;
+    }
+    #form-my-password > div,
+    #form-new-user > div,
+    #form-new-sheet > div,
+    #form-new-link > div { width: 100%; }
+    #form-my-password button,
+    #form-new-user button,
+    #form-new-sheet button,
+    #form-new-link button { width: 100%; }
   }
   /* === Small phones (≤480px) — Stitch 360px viewport (iPhone SE-ish) === */
   @media (max-width: 480px) {
@@ -688,9 +712,6 @@
         <div class="user-menu-name" id="user-menu-name">—</div>
         <div class="user-menu-role" id="user-menu-role">—</div>
       </div>
-      <button class="user-menu-item hidden" id="user-menu-admin" role="menuitem" data-view="admin">
-        <span class="material-icons">admin_panel_settings</span>Admin
-      </button>
       <button class="user-menu-item" id="mobile-logout-btn" role="menuitem">
         <span class="material-icons">logout</span>Cerrar sesión
       </button>
@@ -957,7 +978,6 @@ async function startApp() {
   $$('.sidebar .nav-item, .bottom-nav .nav-item').forEach(b => b.classList.remove('hidden'));
   $('#nav-admin').classList.toggle('hidden', !isAdmin);
   $('#nav-admin-mobile').classList.toggle('hidden', !isAdmin);
-  $('#user-menu-admin').classList.toggle('hidden', !isAdmin);
 
   try {
     const boot = await call('bootstrap');
@@ -1094,12 +1114,7 @@ function bindMobileMenu() {
     btn.setAttribute('aria-expanded', 'false');
   });
   // Item Admin del dropdown: navega a la vista admin
-  $('#user-menu-admin').addEventListener('click', () => {
-    menu.hidden = true;
-    btn.setAttribute('aria-expanded', 'false');
-    showView('admin');
-  });
-}
+  }
 
 function showFatal(e) {
   document.body.innerHTML = `<pre style="color:#b00020; padding:20px; white-space:pre-wrap;">${e.message}</pre>`;

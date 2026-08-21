@@ -50,6 +50,10 @@
   form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   input, select, button { font: inherit; padding: 8px 14px; border: 1px solid var(--outline-variant); border-radius: var(--r-md); background: white; color: var(--on-surface); transition: border-color .15s, box-shadow .15s; }
   input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16,43,138,0.12); }
+  .pw-wrap { position: relative; }
+  .pw-wrap > input { padding-right: 38px; width: 100%; }
+  .pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; color: var(--on-surface-variant); cursor: pointer; padding: 4px 8px; font-size: 14px; line-height: 1; border-radius: var(--r-sm); }
+  .pw-toggle:hover { background: var(--surface-low); color: var(--primary); }
   button { background: var(--primary); color: var(--on-primary); border: 0; cursor: pointer; font-weight: 600; }
   button:hover { background: var(--primary-container); }
   button.secondary { background: #fff; color: var(--primary); border: 1px solid var(--outline-variant); }
@@ -347,7 +351,10 @@
     <label for="setup-admin-user">Usuario admin</label>
     <input type="text" id="setup-admin-user" value="admin" required pattern="[A-Za-z0-9_.\-]{3,40}" autocomplete="username">
     <label for="setup-admin-pass">Contraseña admin (mín. 8)</label>
-    <input type="password" id="setup-admin-pass" required minlength="8" autocomplete="new-password">
+    <div class="pw-wrap">
+      <input type="password" id="setup-admin-pass" required minlength="8" autocomplete="new-password">
+      <button type="button" class="pw-toggle" data-pw="setup-admin-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button>
+    </div>
     <button type="submit">Crear configuración</button>
     <button type="button" id="setup-retry" class="secondary" hidden>Reintentar</button>
     <div class="err" id="setup-err"></div>
@@ -563,8 +570,8 @@
             </div>
           </div>
           <form id="form-my-password" style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Actual</label><input type="password" id="mypw-current" autocomplete="current-password" required></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nueva (mín. 8)</label><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Actual</label><div class="pw-wrap"><input type="password" id="mypw-current" autocomplete="current-password" required><button type="button" class="pw-toggle" data-pw="mypw-current" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button></div></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nueva (mín. 8)</label><div class="pw-wrap"><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"><button type="button" class="pw-toggle" data-pw="mypw-new" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button></div></div>
             <button type="submit">Cambiar</button>
           </form>
         </div>
@@ -574,7 +581,7 @@
           <div id="users-list"></div>
           <form id="form-new-user" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1fr 100px auto; align-items: end;">
             <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.\-]{3,40}"></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><input type="password" id="nu-pass" required minlength="8"></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><div class="pw-wrap"><input type="password" id="nu-pass" required minlength="8"><button type="button" class="pw-toggle" data-pw="nu-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button></div></div>
             <div><label style="font-size:11px;color:var(--on-surface-variant);">Rol</label><select id="nu-rol"><option value="basico">basico</option><option value="admin">admin</option></select></div>
             <button type="submit">Crear</button>
           </form>
@@ -979,6 +986,16 @@ function toast(msg, kind) {
   el.style.cssText = `position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:${kind==='warn'?'#fff3cd':'#d4edda'}; color:#222; padding:10px 16px; border-radius:8px; box-shadow:var(--shadow-2); z-index:200; font-size:13px; max-width:90%;`;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3000);
+}
+
+function togglePw(btn) {
+  // ponytail: flip input type — no lib, no state, one fn handles every pw field
+  const inp = document.getElementById(btn.dataset.pw);
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+  btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
 }
 
 const VIEWS = ['dashboard','tasks','habits','stats','reports','admin'];

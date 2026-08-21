@@ -672,7 +672,7 @@ function labelColor(id)  { const l = labelById(id); return l ? l.color : '#9aa0a
 // ==== Backend API ====
 // API_URL is rewritten by tools/Set-ApiDeployment.ps1 (option 1).
 // Default targets the local Cloudflare Worker (npm run dev in proxy/).
-const API_URL = 'http://127.0.0.1:8787';
+const API_URL = 'https://tasktime-cors-proxy.marquezhh.workers.dev';
 
 // ==== Auth ====
 const AUTH_TOKEN_KEY = 'tasktime_auth_token';
@@ -801,7 +801,7 @@ async function init() {
   let networkError = false;
   try {
     const p = await pingWithTimeout();
-    masterOk = !!(p && p.ok);
+    masterOk = !!(p && p.configurado);
     if (!masterOk) pingErr = 'Sin spreadsheet maestro configurado';
   } catch (e) {
     pingErr = e.message || String(e);

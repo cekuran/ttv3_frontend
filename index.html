@@ -52,8 +52,9 @@
   input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16,43,138,0.12); }
   .pw-wrap { position: relative; }
   .pw-wrap > input { padding-right: 38px; width: 100%; }
-  .pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; color: var(--on-surface-variant); cursor: pointer; padding: 4px 8px; font-size: 14px; line-height: 1; border-radius: var(--r-sm); }
+  .pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; color: var(--on-surface-variant); cursor: pointer; padding: 4px 8px; line-height: 1; border-radius: var(--r-sm); display: inline-flex; align-items: center; justify-content: center; }
   .pw-toggle:hover { background: var(--surface-low); color: var(--primary); }
+  .pw-toggle svg { width: 18px; height: 18px; display: block; }
   button { background: var(--primary); color: var(--on-primary); border: 0; cursor: pointer; font-weight: 600; }
   button:hover { background: var(--primary-container); }
   button.secondary { background: #fff; color: var(--primary); border: 1px solid var(--outline-variant); }
@@ -89,6 +90,8 @@
 
   /* === App shell — sidebar (desktop) + bottom nav (mobile) === */
   .app { display: flex; min-height: 100vh; }
+  /* ponytail: misma trampa que .login-screen — el display:flex gana al [hidden] del UA stylesheet */
+  .app[hidden] { display: none !important; }
   .sidebar {
     width: 240px; flex-shrink: 0; background: #fff;
     border-right: 1px solid var(--outline-variant);
@@ -353,7 +356,7 @@
     <label for="setup-admin-pass">Contraseña admin (mín. 8)</label>
     <div class="pw-wrap">
       <input type="password" id="setup-admin-pass" required minlength="8" autocomplete="new-password">
-      <button type="button" class="pw-toggle" data-pw="setup-admin-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button>
+      <button type="button" class="pw-toggle" data-pw="setup-admin-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button>
     </div>
     <button type="submit">Crear configuración</button>
     <button type="button" id="setup-retry" class="secondary" hidden>Reintentar</button>
@@ -380,7 +383,10 @@
     <label for="login-user">Usuario</label>
     <input type="text" id="login-user" autocomplete="username" required>
     <label for="login-pass">Contraseña</label>
-    <input type="password" id="login-pass" autocomplete="current-password" required>
+    <div class="pw-wrap">
+      <input type="password" id="login-pass" autocomplete="current-password" required>
+      <button type="button" class="pw-toggle" data-pw="login-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button>
+    </div>
     <button type="submit">Entrar</button>
     <div class="err" id="login-err"></div>
     <div class="hint" id="login-hint"></div>
@@ -570,8 +576,8 @@
             </div>
           </div>
           <form id="form-my-password" style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr auto; align-items: end;">
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Actual</label><div class="pw-wrap"><input type="password" id="mypw-current" autocomplete="current-password" required><button type="button" class="pw-toggle" data-pw="mypw-current" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button></div></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nueva (mín. 8)</label><div class="pw-wrap"><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"><button type="button" class="pw-toggle" data-pw="mypw-new" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button></div></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Actual</label><div class="pw-wrap"><input type="password" id="mypw-current" autocomplete="current-password" required><button type="button" class="pw-toggle" data-pw="mypw-current" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Nueva (mín. 8)</label><div class="pw-wrap"><input type="password" id="mypw-new" autocomplete="new-password" required minlength="8"><button type="button" class="pw-toggle" data-pw="mypw-new" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
             <button type="submit">Cambiar</button>
           </form>
         </div>
@@ -581,7 +587,7 @@
           <div id="users-list"></div>
           <form id="form-new-user" style="margin-top: 12px; display: grid; gap: 8px; grid-template-columns: 1fr 1fr 100px auto; align-items: end;">
             <div><label style="font-size:11px;color:var(--on-surface-variant);">Usuario (3-40)</label><input type="text" id="nu-user" required pattern="[A-Za-z0-9_.\-]{3,40}"></div>
-            <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><div class="pw-wrap"><input type="password" id="nu-pass" required minlength="8"><button type="button" class="pw-toggle" data-pw="nu-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)">👁</button></div></div>
+            <div><label style="font-size:11px;color:var(--on-surface-variant);">Contraseña (mín. 8)</label><div class="pw-wrap"><input type="password" id="nu-pass" required minlength="8"><button type="button" class="pw-toggle" data-pw="nu-pass" aria-label="Mostrar contraseña" onclick="togglePw(this)"></button></div></div>
             <div><label style="font-size:11px;color:var(--on-surface-variant);">Rol</label><select id="nu-rol"><option value="basico">basico</option><option value="admin">admin</option></select></div>
             <button type="submit">Crear</button>
           </form>
@@ -606,6 +612,14 @@
             <button type="submit">Vincular</button>
           </form>
         </div>
+      </div>
+    </section>
+
+    <section id="view-no-hojas" class="view">
+      <div class="empty" style="padding: 80px 24px;">
+        <span class="material-icons" style="font-size: 56px; color: var(--outline-variant);">folder_off</span>
+        <h2 style="margin: 16px 0 8px; color: var(--on-surface); font-size: 18px;">Sin hoja de datos enlazada</h2>
+        <p style="max-width: 420px; margin: 0 auto;">Tu cuenta todavía no tiene una hoja de cálculo vinculada.<br>Pide al administrador que te asigne una para empezar a registrar tiempos.</p>
       </div>
     </section>
   </main>
@@ -869,6 +883,8 @@ async function startApp() {
   $('#brand-user').textContent = session.user ? `${session.user} · ${session.rol || ''}` : '—';
   // Mostrar el item Admin sólo a administradores.
   const isAdmin = (session.rol || '') === 'admin';
+  // ponytail: reset de nav-items — por si el usuario volvió a tener hoja tras un reload
+  $$('.sidebar .nav-item:not(#nav-admin), .bottom-nav .nav-item:not(#nav-admin-mobile)').forEach(b => b.classList.remove('hidden'));
   $('#nav-admin').classList.toggle('hidden', !isAdmin);
   $('#nav-admin-mobile').classList.toggle('hidden', !isAdmin);
 
@@ -888,6 +904,13 @@ async function startApp() {
     if (state.activeTimer) startTicker();
     if (boot.sin_hojas) {
       toast('Tu cuenta no tiene hojas de cálculo asignadas. Pide al admin que vincule una.', 'warn');
+      if (!isAdmin) {
+        // ponytail: sin hoja → vaciar el sidebar/bottom-nav y mostrar la vista de aviso
+        $$('.sidebar .nav-item, .bottom-nav .nav-item').forEach(b => b.classList.add('hidden'));
+        showView('no-hojas');
+        return;
+      }
+      showView('admin');
     }
   } catch (e) {
     if (/No autenticado/.test(e.message)) { clearSession(); showLogin(); return; }
@@ -988,13 +1011,16 @@ function toast(msg, kind) {
   setTimeout(() => el.remove(), 3000);
 }
 
+const ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
 function togglePw(btn) {
-  // ponytail: flip input type — no lib, no state, one fn handles every pw field
+  // ponytail: flip input type + swap inline SVG — no icon lib, no emoji
   const inp = document.getElementById(btn.dataset.pw);
   if (!inp) return;
   const show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
-  btn.textContent = show ? '🙈' : '👁';
+  btn.innerHTML = show ? ICON_EYE_OFF : ICON_EYE;
   btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
 }
 
@@ -1868,6 +1894,8 @@ function bindAdmin() {
     } catch (e) { toast(e.message, 'warn'); }
   });
 }
+
+document.querySelectorAll('.pw-toggle').forEach(b => b.innerHTML = ICON_EYE);
 
 init();
 </script>

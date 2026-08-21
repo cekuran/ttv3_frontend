@@ -708,8 +708,28 @@
     .ac-add-form .ac-form-actions { flex-direction: column-reverse; }
     .ac-add-form button[type="submit"],
     .ac-add-form .ac-btn-secondary { width: 100%; }
-    .ac-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .ac-table { min-width: 600px; }
+    /* === Mobile: misma tabla que desktop, con padding compacto para que entre sin scroll === */
+    .ac-card { overflow-x: visible; }
+    .ac-table { min-width: 0; }
+    .ac-table thead th,
+    .ac-table tbody td { padding: 8px 10px; }
+    .ac-table thead th { font-size: 10px; }
+    .ac-table tbody td { font-size: 13px; height: 36px; }
+    .ac-table .ac-user-cell { gap: 8px; }
+    .ac-table .ac-avatar { width: 28px; height: 28px; font-size: 11px; }
+    .ac-table .ac-user-name { font-size: 13px; }
+    .ac-table .ac-user-meta { font-size: 11px; }
+    .ac-table .ac-role { font-size: 10px; padding: 2px 8px; }
+    .ac-table .ac-icon-btn { width: 28px; height: 28px; }
+    .ac-table .ac-icon-btn .material-icons { font-size: 16px; }
+    /* ponytail: truncar IDs largos para que no empujen la tabla fuera de pantalla */
+    .ac-table tbody td code {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .ac-actions { opacity: 1; } /* always visible on touch */
     .ac-toolbar { padding: 10px 12px; }
     .ac-profile { padding: 16px; gap: 12px; }

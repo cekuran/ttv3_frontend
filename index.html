@@ -685,7 +685,7 @@ function readSession() {
 function writeSession(s) { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }
 function clearSession() { setAuthToken(''); writeSession(null); }
 
-async function rawCall(fn, ...args) {
+async function rawCall(fn, ...args, attempt = 0) {
   const body = JSON.stringify({ action: fn, args, token: authToken() });
   let response;
   try {
@@ -702,6 +702,13 @@ async function rawCall(fn, ...args) {
   // 504/502 del proxy → mensaje accionable (cold-start, deploy, red).
   if (response.status === 504 || response.status === 502) {
     const msg = (text || '').trim() || `HTTP ${response.status}`;
+    // ponytail: 504 casi siempre es cold-start de Apps Script tras deploy.
+    // El primer fetch calienta el runtime, el segundo entra en <2 s.
+    // Reintentamos una vez tras 5 s antes de fallar — transparente para el usuario.
+    if (response.status === 504 && attempt < 1) {
+      await new Promise(r => setTimeout(r, 5000));
+      return rawCall(fn, ...args, attempt + 1);
+    }
     if (/timeout/i.test(msg) || response.status === 504) {
       throw new Error('El backend está arrancando (cold-start tras deploy). Espera ~30 segundos y vuelve a intentarlo.');
     }

@@ -40,7 +40,7 @@
   html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
   body { font: 14px/1.5 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: var(--surface); color: var(--on-surface); }
   @keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.5; transform:scale(1.15);} }
-  main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+  main { padding: 20px; margin: 0 auto; }
   .view { display: none; }
   .view.active { display: block; }
   .panel { background: #fff; padding: 18px 20px; border-radius: var(--r-lg); box-shadow: var(--shadow-1); margin-bottom: 16px; border: 1px solid var(--outline-variant); }
@@ -171,7 +171,7 @@
 
   .bottom-nav { display: none; }
 
-  main { margin-left: 240px; flex: 1; padding: 28px 40px; max-width: 1200px; }
+  main { margin-left: 240px; flex: 1; padding: 28px 40px; }
   .view-header { margin-bottom: 24px; }
   .view-header h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
   .view-header p  { color: var(--on-surface-variant); font-size: 14px; margin: 0; }
@@ -623,16 +623,16 @@
       </div>
     </section>
   </main>
-</div>
 
-<nav class="bottom-nav">
-  <button class="nav-item active" data-view="dashboard"><span class="material-icons">dashboard</span>Dashboard</button>
-  <button class="nav-item" data-view="tasks"><span class="material-icons">checklist</span>Tasks</button>
-  <button class="nav-item" data-view="habits"><span class="material-icons">cached</span>Habits</button>
-  <button class="nav-item" data-view="stats"><span class="material-icons">bar_chart</span>Stats</button>
-  <button class="nav-item" data-view="reports"><span class="material-icons">description</span>Reports</button>
-  <button class="nav-item hidden" data-view="admin" id="nav-admin-mobile"><span class="material-icons">admin_panel_settings</span>Admin</button>
-</nav>
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-view="dashboard"><span class="material-icons">dashboard</span>Dashboard</button>
+    <button class="nav-item" data-view="tasks"><span class="material-icons">checklist</span>Tasks</button>
+    <button class="nav-item" data-view="habits"><span class="material-icons">cached</span>Habits</button>
+    <button class="nav-item" data-view="stats"><span class="material-icons">bar_chart</span>Stats</button>
+    <button class="nav-item" data-view="reports"><span class="material-icons">description</span>Reports</button>
+    <button class="nav-item hidden" data-view="admin" id="nav-admin-mobile"><span class="material-icons">admin_panel_settings</span>Admin</button>
+  </nav>
+</div>
 
 <script>
 // ==== State ====
@@ -883,8 +883,8 @@ async function startApp() {
   $('#brand-user').textContent = session.user ? `${session.user} · ${session.rol || ''}` : '—';
   // Mostrar el item Admin sólo a administradores.
   const isAdmin = (session.rol || '') === 'admin';
-  // ponytail: reset de nav-items — por si el usuario volvió a tener hoja tras un reload
-  $$('.sidebar .nav-item:not(#nav-admin), .bottom-nav .nav-item:not(#nav-admin-mobile)').forEach(b => b.classList.remove('hidden'));
+  // ponytail: reset de todos los nav-items — por si el usuario volvió a tener hoja tras un reload
+  $$('.sidebar .nav-item, .bottom-nav .nav-item').forEach(b => b.classList.remove('hidden'));
   $('#nav-admin').classList.toggle('hidden', !isAdmin);
   $('#nav-admin-mobile').classList.toggle('hidden', !isAdmin);
 
@@ -903,14 +903,15 @@ async function startApp() {
     refreshAll();
     if (state.activeTimer) startTicker();
     if (boot.sin_hojas) {
-      toast('Tu cuenta no tiene hojas de cálculo asignadas. Pide al admin que vincule una.', 'warn');
-      if (!isAdmin) {
-        // ponytail: sin hoja → vaciar el sidebar/bottom-nav y mostrar la vista de aviso
+      // ponytail: sin hoja → vaciar nav y enseñar aviso (no toast, no dashboard vacío)
+      if (isAdmin) {
+        $$('.sidebar .nav-item:not(#nav-admin), .bottom-nav .nav-item:not(#nav-admin-mobile)').forEach(b => b.classList.add('hidden'));
+        showView('admin');
+      } else {
         $$('.sidebar .nav-item, .bottom-nav .nav-item').forEach(b => b.classList.add('hidden'));
         showView('no-hojas');
-        return;
       }
-      showView('admin');
+      return;
     }
   } catch (e) {
     if (/No autenticado/.test(e.message)) { clearSession(); showLogin(); return; }

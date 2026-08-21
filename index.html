@@ -360,7 +360,8 @@
   <div class="login-card" style="text-align:center;">
     <h1 style="margin-bottom: 8px;">TaskTime</h1>
     <div class="sub" id="boot-status">Conectando con el backend…</div>
-    <div style="margin: 18px auto 8px; width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--outline-variant); border-top-color: var(--primary); animation: spin 0.9s linear infinite;"></div>
+    <div id="boot-spinner" style="margin: 18px auto 8px; width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--outline-variant); border-top-color: var(--primary); animation: spin 0.9s linear infinite;"></div>
+    <button type="button" id="boot-retry" hidden onclick="location.reload()" style="margin-top:8px;">Reintentar</button>
   </div>
 </div>
 
@@ -773,7 +774,7 @@ function populateTimerTaskSelect() {
 const PALETTE_C = ['#4285F4','#EA4335','#FBBC04','#34A853','#A142F4','#24C1E0','#FF6D00','#7B1FA2'];
 
 // ==== Bootstrap ====
-const PING_TIMEOUT_MS = 8000;
+const PING_TIMEOUT_MS = 70000; // must exceed rawCallImpl worst-case: 29s proxy + 5s wait + 29s retry ≈ 63s
 
 function pingWithTimeout(token) {
   return new Promise((resolve, reject) => {
@@ -789,9 +790,14 @@ async function init() {
   bindLogin();
   bindSetup();
   // boot-screen está visible por defecto. Se quita al final con hideBoot().
+  // Tras 10s sin respuesta, avisamos que el backend está arrancando (cold-start).
+  const coldStartTimer = setTimeout(() => {
+    $('#boot-status').textContent = 'El backend está arrancando, puede tardar hasta 60 s…';
+  }, 10000);
   // 1) ¿Está configurado el spreadsheet maestro?
   let masterOk = false;
   let pingErr = '';
+  let networkError = false;
   try {
     const p = await pingWithTimeout();
     masterOk = !!(p && p.ok);
@@ -799,6 +805,16 @@ async function init() {
   } catch (e) {
     pingErr = e.message || String(e);
     masterOk = false;
+    networkError = true; // timeout / 504: backend no alcanzable, master puede estar configurado
+  } finally {
+    clearTimeout(coldStartTimer);
+  }
+  if (networkError) {
+    // No mostrar el formulario de setup — el master puede estar bien, solo hay cold-start.
+    $('#boot-status').textContent = pingErr;
+    $('#boot-spinner').hidden = true;
+    $('#boot-retry').hidden = false;
+    return;
   }
   hideBoot();
   if (!masterOk) { showSetup(pingErr); return; }

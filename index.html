@@ -391,10 +391,10 @@
     #form-new-user > div,
     #form-new-sheet > div,
     #form-new-link > div { width: 100%; }
-    #form-my-password button,
-    #form-new-user button,
-    #form-new-sheet button,
-    #form-new-link button { width: 100%; }
+    #form-my-password button:not(.pw-toggle),
+    #form-new-user button:not(.pw-toggle),
+    #form-new-sheet button:not(.pw-toggle),
+    #form-new-link button:not(.pw-toggle) { width: 100%; }
   }
   /* === Small phones (≤480px) — Stitch 360px viewport (iPhone SE-ish) === */
   @media (max-width: 480px) {

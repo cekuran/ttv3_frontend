@@ -685,7 +685,7 @@ function readSession() {
 function writeSession(s) { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }
 function clearSession() { setAuthToken(''); writeSession(null); }
 
-async function rawCall(fn, ...args, attempt = 0) {
+async function rawCallImpl(fn, args, attempt) {
   const body = JSON.stringify({ action: fn, args, token: authToken() });
   let response;
   try {
@@ -707,7 +707,7 @@ async function rawCall(fn, ...args, attempt = 0) {
     // Reintentamos una vez tras 5 s antes de fallar — transparente para el usuario.
     if (response.status === 504 && attempt < 1) {
       await new Promise(r => setTimeout(r, 5000));
-      return rawCall(fn, ...args, attempt + 1);
+      return rawCallImpl(fn, args, attempt + 1);
     }
     if (/timeout/i.test(msg) || response.status === 504) {
       throw new Error('El backend está arrancando (cold-start tras deploy). Espera ~30 segundos y vuelve a intentarlo.');
@@ -727,6 +727,7 @@ async function rawCall(fn, ...args, attempt = 0) {
   return payload ? payload.data : null;
 }
 
+function rawCall(fn, ...args) { return rawCallImpl(fn, args, 0); }
 function call(fn, ...args) { return rawCall(fn, ...args); }
 
 function populateTaskSelect(sel, placeholder) {

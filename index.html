@@ -342,8 +342,8 @@
   <form class="login-card" id="setup-form" autocomplete="off">
     <h1>TaskTime · Configuración inicial</h1>
     <div class="sub">Indica el Google Sheet maestro y la contraseña del primer administrador.</div>
-    <label for="setup-sheet-id">Spreadsheet ID (el del Sheet que contendrá Usuarios, Hojas, Tokens…)</label>
-    <input type="text" id="setup-sheet-id" placeholder="1aBcDeFgHiJkLmNoPqRsTuVwXyZ..." required pattern="[A-Za-z0-9_-]{20,}" autocomplete="off">
+    <label for="setup-sheet-id">Spreadsheet ID o URL del Sheet</label>
+    <input type="text" id="setup-sheet-id" placeholder="1aBcDeFg…  o  https://docs.google.com/spreadsheets/d/1aBcDeFg…/edit" required autocomplete="off">
     <label for="setup-admin-user">Usuario admin</label>
     <input type="text" id="setup-admin-user" value="admin" required pattern="[A-Za-z0-9_.-]{3,40}" autocomplete="username">
     <label for="setup-admin-pass">Contraseña admin (mín. 8)</label>
@@ -872,13 +872,29 @@ function bindLogin() {
   });
 }
 
+// Acepta tanto el ID crudo como la URL completa del Sheet
+// (https://docs.google.com/spreadsheets/d/<ID>/edit...). Devuelve el ID o ''.
+function extractSheetId_(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  // Caso URL: extraer el segmento entre /d/ y / o ? o # o final.
+  const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  // Caso ID crudo: 44 chars típicos, [A-Za-z0-9_-]{20,}
+  if (/^[A-Za-z0-9_-]{20,}$/.test(s)) return s;
+  return '';
+}
+
 function bindSetup() {
   $('#setup-form').addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const sid = $('#setup-sheet-id').value.trim();
+    const sid = extractSheetId_($('#setup-sheet-id').value);
     const usr = $('#setup-admin-user').value.trim();
     const pwd = $('#setup-admin-pass').value;
     $('#setup-err').textContent = '';
+    if (!sid) { $('#setup-err').textContent = 'Spreadsheet ID inválido. Pega la URL completa del Sheet o su ID.'; return; }
+    if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(usr)) { $('#setup-err').textContent = 'Usuario inválido (3-40, letras, números, _.-).'; return; }
+    if (!pwd || pwd.length < 8) { $('#setup-err').textContent = 'La contraseña debe tener mínimo 8 caracteres.'; return; }
     const submitBtn = ev.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {

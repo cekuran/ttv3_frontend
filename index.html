@@ -500,7 +500,7 @@
   }
   .ac-sheet-toggle:hover { background: var(--surface-low); color: var(--primary); }
   .ac-sheet-toggle .material-icons { font-size: 20px; line-height: 1; transition: transform .2s; }
-  .ac-sheet-row.expanded .ac-sheet-toggle .material-icons { transform: rotate(0deg); }
+  .ac-data-row.expanded .ac-sheet-toggle .material-icons { transform: rotate(0deg); }
   .ac-sheet-expand td { background: var(--surface-low); padding: 16px 24px !important; height: auto; border-bottom: 1px solid var(--outline-variant); }
   .ac-sheet-users-header {
     font: 600 11px/14px 'Inter', sans-serif;
@@ -2541,7 +2541,7 @@ function paintUsers() {
     ` : '';
 
     return `
-      <tr class="ac-sheet-row ${expanded ? 'expanded' : ''}" data-username="${escapeHtml(u.username)}">
+      <tr class="ac-data-row ${expanded ? 'expanded' : ''}" data-username="${escapeHtml(u.username)}">
         <td>
           <div class="ac-user-cell">
             <button class="ac-sheet-toggle user-toggle" title="${expanded ? 'Contraer' : 'Expandir'}" aria-label="Expandir fila"><span class="material-icons">${expanded ? 'expand_less' : 'expand_more'}</span></button>
@@ -2559,7 +2559,7 @@ function paintUsers() {
           </div>
         </td>
       </tr>
-      <tr class="ac-sheet-expand-row" data-expand-user="${escapeHtml(u.username)}" ${expanded ? '' : 'hidden'}>
+      <tr class="ac-expand-row" data-expand-user="${escapeHtml(u.username)}" ${expanded ? '' : 'hidden'}>
         <td colspan="3">
           <div class="ac-sheet-users-header">Hojas vinculadas</div>
           <div class="ac-sheet-users-list">${hojasList}</div>
@@ -2572,7 +2572,7 @@ function paintUsers() {
   $$('#users-list .user-toggle').forEach(b => b.onclick = (ev) => {
     ev.stopPropagation();
     const username = b.closest('tr').dataset.username;
-    const expandRow = $(`#users-list .ac-sheet-expand-row[data-expand-user="${CSS.escape(username)}"]`);
+    const expandRow = $(`#users-list .ac-expand-row[data-expand-user="${CSS.escape(username)}"]`);
     if (!expandRow) return;
     const willOpen = expandRow.hidden;
     expandRow.hidden = !willOpen;
@@ -2585,8 +2585,10 @@ function paintUsers() {
   $$('#users-list .user-edit').forEach(b => b.onclick = () => openEditUserModal(b.closest('tr').dataset.username));
 
   $$('#users-list .user-unlink-sheet').forEach(b => b.onclick = () => {
-    const username = b.closest('tr.ac-sheet-row').dataset.username;
-    const sid = b.closest('.ac-sheet-user').dataset.sid;
+    // ponytail: el botón vive dentro de la fila expandible, no de la fila de usuario — leer username del expand row
+    const username = b.closest('tr.ac-expand-row')?.dataset.expandUser;
+    const sid = b.closest('.ac-sheet-user')?.dataset.sid;
+    if (!username || !sid) return;
     const sheet = adminSheets.find(s => s.spreadsheet_id === sid);
     const sheetName = sheet?.nombre || sid;
     showConfirm('Quitar hoja', `¿Quitar la hoja "${sheetName}" del usuario "${username}"?`, 'Quitar').then(ok => {
@@ -2597,7 +2599,7 @@ function paintUsers() {
 
   $$('#users-list .add-sheet-sel').forEach(sel => sel.onchange = () => {
     if (!sel.value) return;
-    const username = sel.closest('.ac-sheet-expand-row').dataset.expandUser;
+    const username = sel.closest('.ac-expand-row').dataset.expandUser;
     const sid = sel.value;
     sel.value = '';
     call('vincularHojaUsuarioAdmin', username, sid, false).then(() => {
@@ -2628,7 +2630,7 @@ function paintSheets() {
       </div>
     ` : '';
     return `
-      <tr class="ac-sheet-row ${expanded ? 'expanded' : ''}" data-sid="${escapeHtml(s.spreadsheet_id)}">
+      <tr class="ac-data-row ${expanded ? 'expanded' : ''}" data-sid="${escapeHtml(s.spreadsheet_id)}">
         <td>
           <div class="ac-user-cell">
             <button class="ac-sheet-toggle sheet-toggle" title="${expanded ? 'Contraer' : 'Expandir'}" aria-label="Expandir fila"><span class="material-icons">${expanded ? 'expand_less' : 'expand_more'}</span></button>
@@ -2647,7 +2649,7 @@ function paintSheets() {
           </div>
         </td>
       </tr>
-      <tr class="ac-sheet-expand-row" data-expand="${escapeHtml(s.spreadsheet_id)}" ${expanded ? '' : 'hidden'}>
+      <tr class="ac-expand-row" data-expand="${escapeHtml(s.spreadsheet_id)}" ${expanded ? '' : 'hidden'}>
         <td colspan="3">
           <div class="ac-sheet-users-header">Usuarios vinculados</div>
           <div class="ac-sheet-users-list">${usersList}</div>
@@ -2660,7 +2662,7 @@ function paintSheets() {
   $$('#sheets-list .sheet-toggle').forEach(b => b.onclick = (ev) => {
     ev.stopPropagation();
     const sid = b.closest('tr').dataset.sid;
-    const expandRow = $(`#sheets-list .ac-sheet-expand-row[data-expand="${CSS.escape(sid)}"]`);
+    const expandRow = $(`#sheets-list .ac-expand-row[data-expand="${CSS.escape(sid)}"]`);
     if (!expandRow) return;
     const willOpen = expandRow.hidden;
     expandRow.hidden = !willOpen;
@@ -2675,8 +2677,10 @@ function paintSheets() {
   $$('#sheets-list .sheet-info').forEach(b => b.onclick = () => openSheetIdModal(b.closest('tr').dataset.sid));
 
   $$('#sheets-list .sheet-unlink').forEach(b => b.onclick = () => {
-    const sid = b.closest('tr.ac-sheet-row').dataset.sid;
-    const username = b.closest('.ac-sheet-user').dataset.username;
+    // ponytail: el botón vive dentro de la fila expandible, no de la fila de hoja — leer sid del expand row
+    const sid = b.closest('tr.ac-expand-row')?.dataset.expand;
+    const username = b.closest('.ac-sheet-user')?.dataset.username;
+    if (!sid || !username) return;
     showConfirm('Quitar usuario', `¿Quitar a "${username}" de esta hoja?`, 'Quitar').then(ok => {
       if (!ok) return;
       call('desvincularHojaUsuarioAdmin', username, sid).then(() => renderAdmin()).catch(e => toast(e.message, 'warn'));
@@ -2685,7 +2689,7 @@ function paintSheets() {
 
   $$('#sheets-list .add-user-sel').forEach(sel => sel.onchange = () => {
     if (!sel.value) return;
-    const sid = sel.closest('.ac-sheet-expand-row').dataset.expand;
+    const sid = sel.closest('.ac-expand-row').dataset.expand;
     const username = sel.value;
     sel.value = '';
     call('vincularHojaUsuarioAdmin', username, sid, false).then(() => {

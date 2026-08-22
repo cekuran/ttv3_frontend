@@ -489,7 +489,7 @@
   .ac-btn-danger:hover { background: #93000a; }
 
   /* === Sheets table — fila colapsable con usuarios vinculados === */
-  .ac-sheet-toggle {
+  .ac-toggle {
     width: 28px; height: 28px; padding: 0;
     background: transparent; border: 0; border-radius: 6px;
     color: var(--on-surface-variant);
@@ -498,35 +498,35 @@
     flex-shrink: 0;
     transition: background .15s, color .15s;
   }
-  .ac-sheet-toggle:hover { background: var(--surface-low); color: var(--primary); }
-  .ac-sheet-toggle .material-icons { font-size: 20px; line-height: 1; transition: transform .2s; }
-  .ac-data-row.expanded .ac-sheet-toggle .material-icons { transform: rotate(0deg); }
+  .ac-toggle:hover { background: var(--surface-low); color: var(--primary); }
+  .ac-toggle .material-icons { font-size: 20px; line-height: 1; transition: transform .2s; }
+  .ac-data-row.expanded .ac-toggle .material-icons { transform: rotate(0deg); }
   .ac-sheet-expand td { background: var(--surface-low); padding: 16px 24px !important; height: auto; border-bottom: 1px solid var(--outline-variant); }
-  .ac-sheet-users-header {
+  .ac-link-header {
     font: 600 11px/14px 'Inter', sans-serif;
     color: var(--on-surface-variant);
     text-transform: uppercase;
     letter-spacing: 0.03em;
     margin-bottom: 10px;
   }
-  .ac-sheet-users-list { display: flex; flex-direction: column; gap: 4px; }
-  .ac-sheet-user {
+  .ac-link-list { display: flex; flex-direction: column; gap: 4px; }
+  .ac-link-item {
     display: flex; align-items: center; gap: 10px;
     padding: 6px 0;
     border-bottom: 1px solid var(--outline-variant);
   }
-  .ac-sheet-user:last-of-type { border-bottom: 0; }
-  .ac-sheet-user .ac-avatar { width: 24px; height: 24px; font-size: 11px; }
-  .ac-sheet-user .ac-user-name { flex: 1; font-size: 14px; }
-  .ac-sheet-add-user { margin-top: 12px; }
-  .ac-sheet-add-user select {
+  .ac-link-item:last-of-type { border-bottom: 0; }
+  .ac-link-item .ac-avatar { width: 24px; height: 24px; font-size: 11px; }
+  .ac-link-item .ac-user-name { flex: 1; font-size: 14px; }
+  .ac-add-link { margin-top: 12px; }
+  .ac-add-link select {
     width: 100%; height: 36px; padding: 0 12px;
     border: 1px solid var(--outline-variant);
     border-radius: var(--r-sm);
     background: #fff;
     font-size: 14px; color: var(--on-surface);
   }
-  .ac-sheet-add-user select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .ac-add-link select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 
   /* Sheet ID viewer modal — bloque de código copiable */
   .ac-sheet-id-display {
@@ -2523,7 +2523,7 @@ function paintUsers() {
     const candidates = adminSheets.filter(s => !linkedSids.has(s.spreadsheet_id));
 
     const hojasList = linked.map(h => `
-      <div class="ac-sheet-user" data-sid="${escapeHtml(h.spreadsheet_id)}">
+      <div class="ac-link-item" data-sid="${escapeHtml(h.spreadsheet_id)}">
         <div class="ac-avatar" style="background:linear-gradient(135deg, var(--secondary), #005a40);">${acAvatar(h.nombre)}</div>
         <span class="ac-user-name">${escapeHtml(h.nombre)}</span>
         ${h.por_defecto ? '<span class="ac-role default">por defecto</span>' : ''}
@@ -2532,7 +2532,7 @@ function paintUsers() {
     `).join('') || '<div class="ac-user-meta">(sin hojas vinculadas)</div>';
 
     const addSheet = candidates.length > 0 ? `
-      <div class="ac-sheet-add-user">
+      <div class="ac-add-link">
         <select class="add-sheet-sel" aria-label="Añadir hoja al usuario">
           <option value="">Añadir hoja…</option>
           ${candidates.map(s => `<option value="${escapeHtml(s.spreadsheet_id)}">${escapeHtml(s.nombre)}</option>`).join('')}
@@ -2544,7 +2544,7 @@ function paintUsers() {
       <tr class="ac-data-row ${expanded ? 'expanded' : ''}" data-username="${escapeHtml(u.username)}">
         <td>
           <div class="ac-user-cell">
-            <button class="ac-sheet-toggle user-toggle" title="${expanded ? 'Contraer' : 'Expandir'}" aria-label="Expandir fila"><span class="material-icons">${expanded ? 'expand_less' : 'expand_more'}</span></button>
+            <button class="ac-toggle user-toggle" title="${expanded ? 'Contraer' : 'Expandir'}" aria-label="Expandir fila"><span class="material-icons">${expanded ? 'expand_less' : 'expand_more'}</span></button>
             <div class="ac-avatar">${acAvatar(u.username)}</div>
             <div>
               <div class="ac-user-name">${escapeHtml(u.username)}</div>
@@ -2561,8 +2561,8 @@ function paintUsers() {
       </tr>
       <tr class="ac-expand-row" data-expand-user="${escapeHtml(u.username)}" ${expanded ? '' : 'hidden'}>
         <td colspan="3">
-          <div class="ac-sheet-users-header">Hojas vinculadas</div>
-          <div class="ac-sheet-users-list">${hojasList}</div>
+          <div class="ac-link-header">Hojas vinculadas</div>
+          <div class="ac-link-list">${hojasList}</div>
           ${addSheet}
         </td>
       </tr>
@@ -2587,7 +2587,7 @@ function paintUsers() {
   $$('#users-list .user-unlink-sheet').forEach(b => b.onclick = () => {
     // ponytail: el botón vive dentro de la fila expandible, no de la fila de usuario — leer username del expand row
     const username = b.closest('tr.ac-expand-row')?.dataset.expandUser;
-    const sid = b.closest('.ac-sheet-user')?.dataset.sid;
+    const sid = b.closest('.ac-link-item')?.dataset.sid;
     if (!username || !sid) return;
     const sheet = adminSheets.find(s => s.spreadsheet_id === sid);
     const sheetName = sheet?.nombre || sid;
@@ -2614,7 +2614,7 @@ function paintSheets() {
   wrap.innerHTML = adminSheets.map(s => {
     const expanded = !!state.expandedSheets?.has(s.spreadsheet_id);
     const usersList = s.usuarios.map(un => `
-      <div class="ac-sheet-user" data-username="${escapeHtml(un)}">
+      <div class="ac-link-item" data-username="${escapeHtml(un)}">
         <div class="ac-avatar">${acAvatar(un)}</div>
         <span class="ac-user-name">${escapeHtml(un)}</span>
         <button class="ac-icon-btn danger sheet-unlink" title="Quitar de la hoja" aria-label="Quitar de la hoja"><span class="material-icons">delete</span></button>
@@ -2622,7 +2622,7 @@ function paintSheets() {
     `).join('') || '<div class="ac-user-meta">(sin usuarios vinculados)</div>';
     const candidates = adminUsers.filter(u => !s.usuarios.includes(u.username));
     const addUser = candidates.length > 0 ? `
-      <div class="ac-sheet-add-user">
+      <div class="ac-add-link">
         <select class="add-user-sel" aria-label="Añadir usuario">
           <option value="">Añadir usuario…</option>
           ${candidates.map(u => `<option value="${escapeHtml(u.username)}">${escapeHtml(u.username)}</option>`).join('')}
@@ -2633,7 +2633,7 @@ function paintSheets() {
       <tr class="ac-data-row ${expanded ? 'expanded' : ''}" data-sid="${escapeHtml(s.spreadsheet_id)}">
         <td>
           <div class="ac-user-cell">
-            <button class="ac-sheet-toggle sheet-toggle" title="${expanded ? 'Contraer' : 'Expandir'}" aria-label="Expandir fila"><span class="material-icons">${expanded ? 'expand_less' : 'expand_more'}</span></button>
+            <button class="ac-toggle sheet-toggle" title="${expanded ? 'Contraer' : 'Expandir'}" aria-label="Expandir fila"><span class="material-icons">${expanded ? 'expand_less' : 'expand_more'}</span></button>
             <div class="ac-avatar" style="background:linear-gradient(135deg, var(--secondary), #005a40);">${acAvatar(s.nombre)}</div>
             <div>
               <div class="ac-user-name">${escapeHtml(s.nombre)}</div>
@@ -2651,8 +2651,8 @@ function paintSheets() {
       </tr>
       <tr class="ac-expand-row" data-expand="${escapeHtml(s.spreadsheet_id)}" ${expanded ? '' : 'hidden'}>
         <td colspan="3">
-          <div class="ac-sheet-users-header">Usuarios vinculados</div>
-          <div class="ac-sheet-users-list">${usersList}</div>
+          <div class="ac-link-header">Usuarios vinculados</div>
+          <div class="ac-link-list">${usersList}</div>
           ${addUser}
         </td>
       </tr>
@@ -2679,7 +2679,7 @@ function paintSheets() {
   $$('#sheets-list .sheet-unlink').forEach(b => b.onclick = () => {
     // ponytail: el botón vive dentro de la fila expandible, no de la fila de hoja — leer sid del expand row
     const sid = b.closest('tr.ac-expand-row')?.dataset.expand;
-    const username = b.closest('.ac-sheet-user')?.dataset.username;
+    const username = b.closest('.ac-link-item')?.dataset.username;
     if (!sid || !username) return;
     showConfirm('Quitar usuario', `¿Quitar a "${username}" de esta hoja?`, 'Quitar').then(ok => {
       if (!ok) return;
